@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>XUtils网络请求模块源码分析 | Leif&#39;s Home</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="详细分析网络操作部分代码调用情况。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="XUtils网络请求模块源码分析">
+<meta property="og:url" content="http://yoursite.com/2015/05/31/XUtils网络请求模块源码分析/index.html">
+<meta property="og:site_name" content="Leif's Home">
+<meta property="og:description" content="详细分析网络操作部分代码调用情况。">
+<meta property="og:updated_time" content="2015-06-16T15:36:51.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="XUtils网络请求模块源码分析">
+<meta name="twitter:description" content="详细分析网络操作部分代码调用情况。">
+  
+    <link rel="alternative" href="/atom.xml" title="Leif&#39;s Home" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Leif&#39;s Home</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">Just do id!</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://yoursite.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-XUtils网络请求模块源码分析" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2015/05/31/XUtils网络请求模块源码分析/" class="article-date">
+  <time datetime="2015-05-31T15:45:50.000Z" itemprop="datePublished">2015-05-31</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      XUtils网络请求模块源码分析
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>详细分析网络操作部分代码调用情况。<br><a id="more"></a></p>
+<h2 id="一_新建HttpUtils对象">一 新建HttpUtils对象</h2><h3 id="1-添加请求参数，新建对象">1.添加请求参数，新建对象</h3><pre><code>RequestParams <span class="keyword">params</span> = <span class="keyword">new</span> RequestParams();<span class="comment">//添加请求参数</span>
+ <span class="keyword">params</span>.addBodyParameter(<span class="string">"type"</span>, inforType);
+ <span class="keyword">params</span>.addBodyParameter(<span class="string">"userUUID"</span>, userUUID);
+ <span class="keyword">params</span>.addBodyParameter(<span class="string">"circle"</span>, circle);
+ <span class="keyword">params</span>.addBodyParameter(<span class="string">"page"</span>, page);
+ <span class="keyword">params</span>.addBodyParameter(<span class="string">"time"</span>, time);
+ HttpUtils http = <span class="keyword">new</span> HttpUtils();
+</code></pre><h4 id="1-1构造方法">1.1构造方法</h4><pre><code><span class="comment">//无参构造方法</span>
+<span class="function"><span class="keyword">public</span> <span class="title">HttpUtils</span>(<span class="params"></span>) </span>{
+    <span class="keyword">this</span>(HttpUtils.DEFAULT_CONN_TIMEOUT, <span class="keyword">null</span>);
+}
+<span class="comment">//传入参数 连接超时</span>
+ <span class="function"><span class="keyword">public</span> <span class="title">HttpUtils</span>(<span class="params"><span class="keyword">int</span> connTimeout, String userAgent</span>) </span>{
+    HttpParams <span class="keyword">params</span> = <span class="keyword">new</span> BasicHttpParams();
+    <span class="comment">//1.设置超时参数，超时释放资源</span>
+    ConnManagerParams.setTimeout(<span class="keyword">params</span>, connTimeout);
+    HttpConnectionParams.setSoTimeout(<span class="keyword">params</span>, connTimeout);<span class="comment">//Sets the default socket timeout (SO_TIMEOUT) in milliseconds which is the timeout for waiting for data.</span>
+    HttpConnectionParams.setConnectionTimeout(<span class="keyword">params</span>, connTimeout);<span class="comment">//Sets the timeout until a connection is etablished.</span>
+    <span class="comment">//2.User-Agent请求报头域允许客户端将它的操作系统、浏览器和其它属性告诉服务器。</span>
+    <span class="keyword">if</span> (TextUtils.isEmpty(userAgent)) {
+        userAgent = OtherUtils.getUserAgent(<span class="keyword">null</span>);
+    }
+    HttpProtocolParams.setUserAgent(<span class="keyword">params</span>, userAgent);
+    <span class="comment">//3.设置连接池最大连接数，每台主机最多连接数</span>
+    ConnManagerParams.setMaxConnectionsPerRoute(<span class="keyword">params</span>, <span class="keyword">new</span> ConnPerRouteBean(<span class="number">10</span>));<span class="comment">//Sets lookup interface for maximum number of connections allowed per route.</span>
+    ConnManagerParams.setMaxTotalConnections(<span class="keyword">params</span>, <span class="number">10</span>);<span class="comment">//Sets the maximum number of connections allowed.</span>
+    <span class="comment">//4.关闭算法延迟</span>
+    HttpConnectionParams.setTcpNoDelay(<span class="keyword">params</span>, <span class="keyword">true</span>);
+    HttpConnectionParams.setSocketBufferSize(<span class="keyword">params</span>, <span class="number">1024</span> * <span class="number">8</span>);
+    HttpProtocolParams.setVersion(<span class="keyword">params</span>, HttpVersion.HTTP_1_1);
+    <span class="comment">//5.声明协议</span>
+    SchemeRegistry schemeRegistry = <span class="keyword">new</span> SchemeRegistry();
+    schemeRegistry.register(<span class="keyword">new</span> Scheme(<span class="string">"http"</span>, PlainSocketFactory.getSocketFactory(), <span class="number">80</span>));
+    schemeRegistry.register(<span class="keyword">new</span> Scheme(<span class="string">"https"</span>, DefaultSSLSocketFactory.getSocketFactory(), <span class="number">443</span>));
+
+    <span class="comment">//6.设置多线程管理</span>
+    httpClient = <span class="keyword">new</span> DefaultHttpClient(<span class="keyword">new</span> ThreadSafeClientConnManager(<span class="keyword">params</span>, schemeRegistry), <span class="keyword">params</span>);
+    <span class="comment">//7.请求失败处理，重试机制</span>
+    httpClient.setHttpRequestRetryHandler(<span class="keyword">new</span> RetryHandler(DEFAULT_RETRY_TIMES));
+
+    <span class="comment">//8.请求发送前执行设置拦截器。 默认加上gizp压缩。 通过gizp压缩后的数据传输效率高很多。</span>
+    httpClient.addRequestInterceptor( <span class="keyword">new</span> HttpRequestInterceptor() {<span class="comment">//Processes a request. On the client side, this step is performed before the request is sent to the server. On the server side, this step is performed on incoming messages before the message body is evaluated.</span>
+
+        @<span class="function">Override
+        <span class="keyword">public</span> <span class="keyword">void</span> <span class="title">process</span>(<span class="params">org.apache.http.HttpRequest httpRequest, HttpContext httpContext</span>) throws org.apache.http.HttpException, IOException </span>{
+            <span class="keyword">if</span> (!httpRequest.containsHeader(HEADER_ACCEPT_ENCODING)) {
+                httpRequest.addHeader(HEADER_ACCEPT_ENCODING, ENCODING_GZIP);
+            }
+        }
+    });
+    <span class="comment">//9.对接受的数据处理</span>
+    httpClient.addResponseInterceptor(<span class="keyword">new</span> HttpResponseInterceptor() {
+        @<span class="function">Override
+        <span class="keyword">public</span> <span class="keyword">void</span> <span class="title">process</span>(<span class="params">HttpResponse response, HttpContext httpContext</span>) throws org.apache.http.HttpException, IOException </span>{
+            final HttpEntity entity = response.getEntity();
+            <span class="keyword">if</span> (entity == <span class="keyword">null</span>) {
+                <span class="keyword">return</span>;
+            }
+            final Header encoding = entity.getContentEncoding();
+            <span class="keyword">if</span> (encoding != <span class="keyword">null</span>) {
+                <span class="keyword">for</span> (HeaderElement element : encoding.getElements()) {
+                    <span class="keyword">if</span> (element.getName().equalsIgnoreCase(<span class="string">"gzip"</span>)) {<span class="comment">//压缩标志</span>
+                        response.setEntity(<span class="keyword">new</span> GZipDecompressingEntity(response.getEntity()));
+                        <span class="keyword">return</span>;
+                    }
+                }
+            }
+        }
+    });
+}
+</code></pre><h4 id="1-1-1_重试机制类RetryHandler">1.1.1 重试机制类RetryHandler</h4><pre><code><span class="keyword">public</span> <span class="keyword">class</span> RetryHandler <span class="keyword">implements</span> HttpRequestRetryHandler {
+
+<span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> RETRY_SLEEP_INTERVAL = <span class="number">500</span>;
+
+<span class="keyword">private</span> <span class="keyword">static</span> HashSet&lt;<span class="keyword">Class</span>&lt;?&gt;&gt; exceptionWhiteList = <span class="keyword">new</span> HashSet&lt;<span class="keyword">Class</span>&lt;?&gt;&gt;();
+
+<span class="keyword">private</span> <span class="keyword">static</span> HashSet&lt;<span class="keyword">Class</span>&lt;?&gt;&gt; exceptionBlackList = <span class="keyword">new</span> HashSet&lt;<span class="keyword">Class</span>&lt;?&gt;&gt;();
+
+<span class="keyword">static</span> {
+    exceptionWhiteList.add(NoHttpResponseException.<span class="keyword">class</span>);
+    exceptionWhiteList.add(UnknownHostException.<span class="keyword">class</span>);
+    exceptionWhiteList.add(SocketException.<span class="keyword">class</span>);
+
+    exceptionBlackList.add(InterruptedIOException.<span class="keyword">class</span>);
+    exceptionBlackList.add(SSLHandshakeException.<span class="keyword">class</span>);
+}
+
+<span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">int</span> maxRetries;
+
+<span class="keyword">public</span> RetryHandler(<span class="keyword">int</span> maxRetries) {
+    <span class="keyword">this</span>.maxRetries = maxRetries;<span class="comment">//最大重试次数</span>
+}
+
+<span class="comment">//覆写方法重试调用</span>
+@Override
+<span class="keyword">public</span> <span class="keyword">boolean</span> retryRequest(IOException exception, <span class="keyword">int</span> retriedTimes, HttpContext context) {
+    <span class="keyword">boolean</span> retry = <span class="keyword">true</span>;
+
+    <span class="keyword">if</span> (exception == <span class="keyword">null</span> || context == <span class="keyword">null</span>) {
+        <span class="keyword">return</span> <span class="keyword">false</span>;
+    }
+
+    <span class="comment">//判断是否已发送请求</span>
+    Object isReqSent = context.getAttribute(ExecutionContext.HTTP_REQ_SENT);
+    <span class="keyword">boolean</span> sent = isReqSent == <span class="keyword">null</span> ? <span class="keyword">false</span> : (<span class="keyword">Boolean</span>) isReqSent;
+
+    <span class="keyword">if</span> (retriedTimes &gt; maxRetries) {<span class="comment">//大于最大重试次数</span>
+        retry = <span class="keyword">false</span>;
+    } <span class="keyword">else</span> <span class="keyword">if</span> (exceptionBlackList.contains(exception.getClass())) {<span class="comment">//IO操作异常中断，SSL握手异常</span>
+        retry = <span class="keyword">false</span>;
+    } <span class="keyword">else</span> <span class="keyword">if</span> (exceptionWhiteList.contains(exception.getClass())) {<span class="comment">//服务器丢掉了连接，未知主机，Socket异常</span>
+        retry = <span class="keyword">true</span>;
+    } <span class="keyword">else</span> <span class="keyword">if</span> (!sent) {<span class="comment">//未发送</span>
+        retry = <span class="keyword">true</span>;
+    }
+
+    <span class="keyword">if</span> (retry) {<span class="comment">//重试</span>
+        <span class="keyword">try</span> {
+            Object currRequest = context.getAttribute(ExecutionContext.HTTP_REQUEST);
+            <span class="keyword">if</span> (currRequest != <span class="keyword">null</span>) {
+                <span class="keyword">if</span> (currRequest <span class="keyword">instanceof</span> HttpRequestBase) {<span class="comment">//基础请求类</span>
+                    HttpRequestBase requestBase = (HttpRequestBase) currRequest;
+                    retry = <span class="string">"GET"</span>.equals(requestBase.getMethod());<span class="comment">//是否是GET方法</span>
+                } <span class="keyword">else</span> <span class="keyword">if</span> (currRequest <span class="keyword">instanceof</span> RequestWrapper) {<span class="comment">//包装请求类</span>
+                    RequestWrapper requestWrapper = (RequestWrapper) currRequest;
+                    retry = <span class="string">"GET"</span>.equals(requestWrapper.getMethod());
+                }
+            } <span class="keyword">else</span> {
+                retry = <span class="keyword">false</span>;
+                LogUtils.e(<span class="string">"retry error, curr request is null"</span>);
+            }
+        } <span class="keyword">catch</span> (Throwable e) {
+            retry = <span class="keyword">false</span>;
+            LogUtils.e(<span class="string">"retry error"</span>, e);
+        }
+    }
+
+    <span class="keyword">if</span> (retry) {
+        SystemClock.sleep(RETRY_SLEEP_INTERVAL); <span class="comment">// sleep a while and retry http request again.</span>
+    }
+
+    <span class="keyword">return</span> retry;
+}
+</code></pre><h2 id="二_发送网络请求">二 发送网络请求</h2><h3 id="1_客户端请求函数">1 客户端请求函数</h3><pre><code>http.send(<span class="type">HttpRequest</span>.<span class="type">HttpMethod</span>.<span class="type">POST</span>,
+            url,
+            params,
+            new <span class="type">RequestCallBack</span>&lt;<span class="type">String</span>&gt;() {
+
+                @<span class="type">Override</span>
+                public <span class="type">void</span> onStart() {
+                    <span class="type">LogUtils</span>.e(<span class="string">"onStart()   "</span>);
+                }
+
+                @<span class="type">Override</span>
+                public <span class="type">void</span> onLoading(long total, long current, boolean isUploading) {
+                    <span class="type">LogUtils</span>.e(<span class="string">"请求文章onLoading()   "</span>);
+                }
+
+                @<span class="type">Override</span>
+                public <span class="type">void</span> onSuccess(<span class="type">ResponseInfo</span>&lt;<span class="type">String</span>&gt; responseInfo) {
+                    <span class="type">LogUtils</span>.e(<span class="string">"请求文章onSuccess()   "</span> + responseInfo.<span class="literal">result</span>);
+                    <span class="keyword">if</span> (httpStateListener != null) {
+                        httpStateListener.refreshArticleState(responseInfo.<span class="literal">result</span>);
+                    }
+                }
+
+                @<span class="type">Override</span>
+                public <span class="type">void</span> onFailure(<span class="type">HttpException</span> error, <span class="type">String</span> msg) {
+                    <span class="type">LogUtils</span>.e(<span class="string">"请求文章onFailure()   "</span> + msg);
+                }
+            });
+}
+</code></pre><h4 id="1-1_方法http-send；">1.1 方法http.send；</h4><pre><code>public &lt;T&gt; <span class="type">HttpHandler</span>&lt;T&gt; send(<span class="type">HttpRequest</span>.<span class="type">HttpMethod</span> <span class="keyword">method</span>, <span class="type">String</span> url, <span class="type">RequestParams</span> params,
+                               <span class="type">RequestCallBack</span>&lt;T&gt; callBack) {
+    //<span class="number">1</span>网址为空处理
+    <span class="keyword">if</span> (url == null) throw new <span class="type">IllegalArgumentException</span>(<span class="string">"url may not be null"</span>);
+    //<span class="number">2</span>.创建请求对象
+    <span class="type">HttpRequest</span> request = new <span class="type">HttpRequest</span>(<span class="keyword">method</span>, url);
+    <span class="keyword">return</span> sendRequest(request, params, callBack);
+}
+</code></pre><h5 id="1-1-1_新建请求对象new_HttpRequest(method,_url);">1.1.1 新建请求对象new HttpRequest(method, url);</h5><pre><code>public <span class="type">HttpRequest</span>(<span class="type">HttpMethod</span> <span class="keyword">method</span>, <span class="type">String</span> uri) {
+    super();
+    this.<span class="keyword">method</span> = <span class="keyword">method</span>;
+    setURI(uri);//存储uri
+}
+</code></pre><h6 id="1-1-1-1_存储URI_setURI(uri);">1.1.1.1 存储URI setURI(uri);</h6><pre><code><span class="component">public void setURI(String uri) {
+    this<span class="string">.uriBuilder</span> = new URIBuilder(uri);
+}</span>
+
+
+<span class="component">public URIBuilder(final String uri) {
+    try {
+        digestURI(new URI(uri));
+    }</span> catch (URISyntaxException e) {
+        LogUtils.e(e.getMessage(), e);
+    }
+}
+
+<span class="component">private void digestURI(final URI uri) {
+    this<span class="string">.scheme</span> = uri<span class="string">.getScheme()</span>;
+    this<span class="string">.encodedSchemeSpecificPart</span> = uri<span class="string">.getRawSchemeSpecificPart()</span>;
+    this<span class="string">.encodedAuthority</span> = uri<span class="string">.getRawAuthority()</span>;
+    this<span class="string">.host</span> = uri<span class="string">.getHost()</span>;
+    this<span class="string">.port</span> = uri<span class="string">.getPort()</span>;
+    this<span class="string">.encodedUserInfo</span> = uri<span class="string">.getRawUserInfo()</span>;
+    this<span class="string">.userInfo</span> = uri<span class="string">.getUserInfo()</span>;
+    this<span class="string">.encodedPath</span> = uri<span class="string">.getRawPath()</span>;
+    this<span class="string">.path</span> = uri<span class="string">.getPath()</span>;
+    this<span class="string">.encodedQuery</span> = uri<span class="string">.getRawQuery()</span>;
+    this<span class="string">.queryParams</span> = parseQuery(uri<span class="string">.getRawQuery())</span>;
+    this<span class="string">.encodedFragment</span> = uri<span class="string">.getRawFragment()</span>;
+    this<span class="string">.fragment</span> = uri<span class="string">.getFragment()</span>;
+}</span>
+</code></pre><h5 id="1-1-2_发送请求_sendRequest(request,_params,_callBack);">1.1.2 发送请求 sendRequest(request, params, callBack);</h5><pre><code><span class="keyword">private</span> &lt;T&gt; HttpHandler&lt;T&gt; sendRequest(HttpRequest request, RequestParams params, RequestCallBack&lt;T&gt; callBack) {
+
+    HttpHandler&lt;T&gt; <span class="keyword">handler</span> = <span class="keyword">new</span> HttpHandler&lt;T&gt;(httpClient, httpContext, responseTextCharset, callBack);
+
+    <span class="keyword">handler</span>.setExpiry(currentRequestExpiry);<span class="comment">//设置终止时间</span>
+    <span class="keyword">handler</span>.setHttpRedirectHandler(httpRedirectHandler);
+    request.setRequestParams(params, <span class="keyword">handler</span>);<span class="comment">//设置请求参数</span>
+
+    <span class="keyword">if</span> (params != <span class="keyword">null</span>) {
+        <span class="keyword">handler</span>.setPriority(params.getPriority());<span class="comment">//设置优先级</span>
+    }
+    <span class="keyword">handler</span>.executeOnExecutor(EXECUTOR, request);
+    <span class="keyword">return</span> <span class="keyword">handler</span>;
+}
+</code></pre><h6 id="1-1-2-1_线程池EXECUTOR">1.1.2.1 线程池EXECUTOR</h6><pre><code><span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">static</span> PriorityExecutor EXECUTOR = <span class="keyword">new</span> PriorityExecutor(DEFAULT_POOL_SIZE);
+
+
+<span class="function"><span class="keyword">public</span> <span class="title">PriorityExecutor</span><span class="params">(<span class="keyword">int</span> poolSize)</span> </span>{
+    mThreadPoolExecutor = <span class="keyword">new</span> ThreadPoolExecutor(
+            poolSize,
+            MAXIMUM_POOL_SIZE,
+            KEEP_ALIVE,
+            TimeUnit.SECONDS,
+            mPoolWorkQueue,
+            sThreadFactory);
+}
+
+<span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> ThreadFactory sThreadFactory = <span class="keyword">new</span> ThreadFactory() {
+    <span class="comment">//AtomicInteger，一个提供原子操作的Integer的类。在Java语言中，++i和i++操作并不是线程安全的，在使用的时候，不可避免的会用到synchronized关键字。而AtomicInteger则通过一种线程安全的加减操作接口。</span>
+    <span class="keyword">private</span> <span class="keyword">final</span> AtomicInteger mCount = <span class="keyword">new</span> AtomicInteger(<span class="number">1</span>);
+
+    <span class="annotation">@Override</span>
+    <span class="keyword">public</span> <span class="function">Thread <span class="title">newThread</span><span class="params">(Runnable r)</span> </span>{
+        <span class="keyword">return</span> <span class="keyword">new</span> Thread(r, <span class="string">"PriorityExecutor #"</span> + mCount.getAndIncrement());
+    }
+};
+
+<span class="keyword">private</span> <span class="keyword">final</span> BlockingQueue&lt;Runnable&gt; mPoolWorkQueue = <span class="keyword">new</span> PriorityObjectBlockingQueue&lt;Runnable&gt;();
+</code></pre><h6 id="1-1-2-2_构造Handler对象">1.1.2.2 构造Handler对象</h6><pre><code>public <span class="type">HttpHandler</span>(<span class="type">AbstractHttpClient</span> client, <span class="type">HttpContext</span> context, <span class="type">String</span> charset,
+                   <span class="type">RequestCallBack</span>&lt;T&gt; callback) {
+    this.client = client;
+    this.context = context;
+    this.callback = callback;
+    this.charset = charset;
+    this.client.setRedirectHandler(notUseApacheRedirectHandler);//设置重定向结构自己处理
+}
+
+
+private <span class="keyword">static</span> final <span class="type">NotUseApacheRedirectHandler</span> notUseApacheRedirectHandler = new
+        <span class="type">NotUseApacheRedirectHandler</span>();
+
+/**
+ * forward是服务器内部重定向，程序收到请求后重新定向到另一个程序，客户机并不知道；redirect则是服务器收到请求后发送一个状态头给客
+ * 户，客户将再请求一次，这里多了两次网络通信的来往。当然forward也有缺点，就是forward的页面的路径如果是相对路径就会有些问题了。
+ */
+private <span class="keyword">static</span> final class <span class="type">NotUseApacheRedirectHandler</span> implements <span class="type">RedirectHandler</span> {
+    @<span class="type">Override</span>
+    public boolean isRedirectRequested(<span class="type">HttpResponse</span> httpResponse, <span class="type">HttpContext</span> httpContext) {
+        <span class="keyword">return</span> <span class="literal">false</span>;
+    }
+
+    @<span class="type">Override</span>
+    public <span class="type">URI</span> getLocationURI(<span class="type">HttpResponse</span> httpResponse, <span class="type">HttpContext</span> httpContext) throws
+            <span class="type">ProtocolException</span> {
+        <span class="keyword">return</span> null;
+    }
+}
+
+
+/**执行父类构造方法
+ * <span class="type">Creates</span> a new asynchronous task. <span class="type">This</span> constructor must be invoked on the <span class="type">UI</span> thread.
+ */
+public <span class="type">PriorityAsyncTask</span>() {
+
+    //实现抽象类<span class="type">Callable</span>
+    mWorker = new <span class="type">WorkerRunnable</span>&lt;<span class="type">Params</span>, <span class="type">Result</span>&gt;() {
+        public <span class="type">Result</span> call() throws <span class="type">Exception</span> {
+            mTaskInvoked.<span class="type">set</span>(<span class="literal">true</span>);
+            android.os.<span class="type">Process</span>.setThreadPriority(android.os.<span class="type">Process</span>.<span class="type">THREAD_PRIORITY_BACKGROUND</span>);
+            //noinspection unchecked
+            <span class="keyword">return</span> postResult(doInBackground(mParams));
+        }
+    };
+
+    mFuture = new <span class="type">FutureTask</span>&lt;<span class="type">Result</span>&gt;(mWorker) {
+        /**
+         * 子类可以重写此方法，以调用完成回调或执行簿记。注意，可以查询此方法的实现内的状态，从而确定是否已取消了此任务。*/
+        @<span class="type">Override</span>
+        protected <span class="type">void</span> done() {
+            <span class="keyword">try</span> {
+                postResultIfNotInvoked(get());//get()如有必要，等待计算完成，然后获取其结果。
+            } catch (<span class="type">InterruptedException</span> e) {
+                <span class="type">LogUtils</span>.d(e.getMessage());
+            } catch (<span class="type">ExecutionException</span> e) {
+                throw new <span class="type">RuntimeException</span>(<span class="string">"An error occured while executing doInBackground()"</span> +
+                        <span class="string">""</span> + <span class="string">""</span>, e.getCause());
+            } catch (<span class="type">CancellationException</span> e) {
+                postResultIfNotInvoked(null);
+            }
+        }
+    };
+}
+
+private <span class="type">void</span> postResultIfNotInvoked(<span class="type">Result</span> <span class="literal">result</span>) {
+    final boolean wasTaskInvoked = mTaskInvoked.get();
+    <span class="keyword">if</span> (!wasTaskInvoked) {
+        postResult(<span class="literal">result</span>);
+    }
+}
+
+private <span class="type">Result</span> postResult(<span class="type">Result</span> <span class="literal">result</span>) {
+    @<span class="type">SuppressWarnings</span>(<span class="string">"unchecked"</span>)
+    <span class="type">Message</span> message = sHandler.obtainMessage
+            (<span class="type">MESSAGE_POST_RESULT</span>, new <span class="type">AsyncTaskResult</span>&lt;<span class="type">Result</span>&gt;(this, <span class="literal">result</span>));
+    message.sendToTarget();
+    <span class="keyword">return</span> <span class="literal">result</span>;
+}
+
+
+//构造<span class="type">Handler</span>对象，发送消息
+private <span class="keyword">static</span> final <span class="type">InternalHandler</span> sHandler = new <span class="type">InternalHandler</span>();
+private <span class="keyword">static</span> class <span class="type">InternalHandler</span> extends <span class="type">Handler</span> {
+    private <span class="type">InternalHandler</span>() {
+        super(<span class="type">Looper</span>.getMainLooper());
+    }
+    @<span class="type">SuppressWarnings</span>({<span class="string">"unchecked"</span>, <span class="string">"RawUseOfParameterizedType"</span>})
+    @<span class="type">Override</span>
+    public <span class="type">void</span> handleMessage(<span class="type">Message</span> msg) {
+        <span class="type">AsyncTaskResult</span>&lt;?&gt; <span class="literal">result</span> = (<span class="type">AsyncTaskResult</span>&lt;?&gt;) msg.obj;
+        switch (msg.what) {
+            <span class="keyword">case</span> <span class="type">MESSAGE_POST_RESULT</span>://任务结束
+                // <span class="type">There</span> <span class="keyword">is</span> only one <span class="literal">result</span>
+                <span class="literal">result</span>.mTask.finish(<span class="literal">result</span>.mData[<span class="number">0</span>]);
+                <span class="keyword">break</span>;
+            <span class="keyword">case</span> <span class="type">MESSAGE_POST_PROGRESS</span>://任务进度
+                <span class="literal">result</span>.mTask.onProgressUpdate(<span class="literal">result</span>.mData);
+                <span class="keyword">break</span>;
+        }
+    }
+}
+
+ private <span class="type">void</span> finish(<span class="type">Result</span> <span class="literal">result</span>) {
+    <span class="keyword">if</span> (isCancelled()) {
+        onCancelled(<span class="literal">result</span>);
+    } <span class="keyword">else</span> {
+        onPostExecute(<span class="literal">result</span>);
+    }
+}
+</code></pre><h6 id="1-1-2-3_Handler处理请求handler-executeOnExecutor(EXECUTOR,_request);">1.1.2.3 Handler处理请求handler.executeOnExecutor(EXECUTOR, request);</h6><pre><code><span class="keyword">public</span> <span class="keyword">final</span> PriorityAsyncTask&lt;Params, Progress, Result&gt; executeOnExecutor(Executor exec, Params... params) {
+    <span class="keyword">if</span> (mExecuteInvoked) {
+        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">"Cannot execute task:"</span> + <span class="string">" the task is already "</span> +
+                <span class="string">"executed."</span>);
+    }
+
+    mExecuteInvoked = <span class="keyword">true</span>;
+
+    onPreExecute();
+
+    mWorker.mParams = params;<span class="comment">//添加HttpRequest</span>
+    exec.execute(<span class="keyword">new</span> PriorityRunnable(priority, mFuture));<span class="comment">//生成对象代理完成FutureTask</span>
+
+    <span class="keyword">return</span> <span class="keyword">this</span>;
+}
+
+<span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">PriorityRunnable</span> <span class="keyword">extends</span> <span class="title">PriorityObject</span>&lt;<span class="title">Runnable</span>&gt; <span class="keyword">implements</span> <span class="title">Runnable</span> </span>{
+
+<span class="function"><span class="keyword">public</span> <span class="title">PriorityRunnable</span><span class="params">(Priority priority, Runnable obj)</span> </span>{
+    <span class="keyword">super</span>(priority, obj);
+}
+<span class="annotation">@Override</span>
+<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>{
+    <span class="keyword">this</span>.obj.run();<span class="comment">//代理</span>
+}
+}
+</code></pre><h6 id="1-1-2-3-1_执行在构造函数PriorityAsyncTask()生成的FutureTask中的WorkerRunnable的_return_postResult(doInBackground(mParams))；">1.1.2.3.1 执行在构造函数PriorityAsyncTask()生成的FutureTask中的WorkerRunnable的  return postResult(doInBackground(mParams))；</h6><pre><code><span class="comment">/**
+ * 后台线程池处理执行，此处是在Work线程处理任务
+ */</span>
+@<span class="function">Override
+<span class="keyword">protected</span> Void <span class="title">doInBackground</span>(<span class="params">Object... <span class="keyword">params</span></span>) </span>{
+
+    <span class="keyword">if</span> (<span class="keyword">this</span>.state == State.CANCELLED || <span class="keyword">params</span> == <span class="keyword">null</span> || <span class="keyword">params</span>.length == <span class="number">0</span>) <span class="keyword">return</span> <span class="keyword">null</span>;
+    <span class="comment">//获取参数</span>
+    <span class="keyword">if</span> (<span class="keyword">params</span>.length &gt; <span class="number">3</span>) {
+        fileSavePath = String.valueOf(<span class="keyword">params</span>[<span class="number">1</span>]);<span class="comment">//target文件存储路径位置</span>
+        isDownloadingFile = fileSavePath != <span class="keyword">null</span>;
+        autoResume = (Boolean) <span class="keyword">params</span>[<span class="number">2</span>];<span class="comment">//自动重新开始</span>
+        autoRename = (Boolean) <span class="keyword">params</span>[<span class="number">3</span>];<span class="comment">//自动重命名</span>
+    }
+
+    <span class="keyword">try</span> {
+        <span class="keyword">if</span> (<span class="keyword">this</span>.state == State.CANCELLED) <span class="keyword">return</span> <span class="keyword">null</span>;
+        <span class="comment">// init request &amp; requestUrl</span>
+        request = (HttpRequestBase) <span class="keyword">params</span>[<span class="number">0</span>];<span class="comment">//获得请求参数</span>
+        requestUrl = request.getURI().toString();<span class="comment">//获取网址</span>
+        <span class="keyword">if</span> (callback != <span class="keyword">null</span>) {<span class="comment">//请求回调接口</span>
+            callback.setRequestUrl(requestUrl);
+        }
+
+        <span class="keyword">this</span>.publishProgress(UPDATE_START);
+
+        lastUpdateTime = SystemClock.uptimeMillis(); <span class="comment">// 从开机到现在的毫秒数（手机睡眠的时间不包括在内）；</span>
+
+        ResponseInfo&lt;T&gt; responseInfo = sendRequest(request);<span class="comment">//执行请求，获取响应</span>
+        <span class="keyword">if</span> (responseInfo != <span class="keyword">null</span>) {
+            <span class="keyword">this</span>.publishProgress(UPDATE_SUCCESS, responseInfo);<span class="comment">//发送进度</span>
+            <span class="keyword">return</span> <span class="keyword">null</span>;
+        }
+    } <span class="keyword">catch</span> (HttpException e) {
+        <span class="keyword">this</span>.publishProgress(UPDATE_FAILURE, e, e.getMessage());
+    }
+
+    <span class="keyword">return</span> <span class="keyword">null</span>;
+}
+</code></pre><h6 id="1-1-2-3-1-1_向UI线程发布状态this-publishProgress(UPDATE_START);">1.1.2.3.1.1 向UI线程发布状态this.publishProgress(UPDATE_START);</h6><pre><code><span class="comment">/**
+ * PriorityAsyncTask.java
+ * 向UI线程发布状态
+ */</span>
+<span class="keyword">protected</span> <span class="keyword">final</span> <span class="keyword">void</span> publishProgress(Progress... values) {
+    <span class="keyword">if</span> (!isCancelled()) {
+        sHandler.obtainMessage(MESSAGE_POST_PROGRESS, <span class="keyword">new</span> AsyncTaskResult&lt;Progress&gt;(<span class="keyword">this</span>, 
+                values)).sendToTarget();
+    }
+}
+
+<span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">class</span> AsyncTaskResult&lt;Data&gt; {
+    <span class="keyword">final</span> PriorityAsyncTask mTask;
+    <span class="keyword">final</span> Data[] mData;
+
+    AsyncTaskResult(PriorityAsyncTask <span class="keyword">task</span>, Data... data) {
+        mTask = <span class="keyword">task</span>;
+        mData = data;
+    }
+}
+</code></pre><h6 id="1-1-2-3-1-1-1_sHandler引用对象">1.1.2.3.1.1.1 sHandler引用对象</h6><pre><code>/**
+ * <span class="type">PriorityAsyncTask</span>.java
+ * 处理异步消息在<span class="type">UI</span>线程
+ */
+private <span class="keyword">static</span> class <span class="type">InternalHandler</span> extends <span class="type">Handler</span> {
+    private <span class="type">InternalHandler</span>() {
+        super(<span class="type">Looper</span>.getMainLooper());
+    }
+
+    @<span class="type">SuppressWarnings</span>({<span class="string">"unchecked"</span>, <span class="string">"RawUseOfParameterizedType"</span>})
+    @<span class="type">Override</span>
+    public <span class="type">void</span> handleMessage(<span class="type">Message</span> msg) {
+        <span class="type">AsyncTaskResult</span>&lt;?&gt; <span class="literal">result</span> = (<span class="type">AsyncTaskResult</span>&lt;?&gt;) msg.obj;
+        switch (msg.what) {
+            <span class="keyword">case</span> <span class="type">MESSAGE_POST_RESULT</span>://任务结束
+                // <span class="type">There</span> <span class="keyword">is</span> only one <span class="literal">result</span>
+                <span class="literal">result</span>.mTask.finish(<span class="literal">result</span>.mData[<span class="number">0</span>]);//调用<span class="type">PriorityAsyncTask</span>引用结束任务
+                <span class="keyword">break</span>;
+            <span class="keyword">case</span> <span class="type">MESSAGE_POST_PROGRESS</span>://任务进度
+                <span class="literal">result</span>.mTask.onProgressUpdate(<span class="literal">result</span>.mData);//调用<span class="type">PriorityAsyncTask</span>引用发布进度
+                <span class="keyword">break</span>;
+        }
+    }
+}
+
+/**
+ * <span class="type">PriorityAsyncTask</span>.java
+ * 处理结束请求
+ * 调用方法需要子类实现
+ */
+private <span class="type">void</span> finish(<span class="type">Result</span> <span class="literal">result</span>) {
+    <span class="keyword">if</span> (isCancelled()) {
+        onCancelled(<span class="literal">result</span>);
+    } <span class="keyword">else</span> {
+        onPostExecute(<span class="literal">result</span>);
+    }
+}
+</code></pre><h6 id="1-1-2-3-1-1-1-1_在子类HttpHandler处理上述抽象函数result-mTask-onProgressUpdate(result-mData);">1.1.2.3.1.1.1.1 在子类HttpHandler处理上述抽象函数result.mTask.onProgressUpdate(result.mData);</h6><pre><code> <span class="comment">/**
+ * HttpHandler.java
+ * 覆写父类方法
+ * 处理客户端回调接口方法，通知客户端状态信息
+ */</span>
+<span class="annotation">@Override</span>
+<span class="annotation">@SuppressWarnings</span>(<span class="string">"unchecked"</span>)
+<span class="keyword">protected</span> <span class="function"><span class="keyword">void</span> <span class="title">onProgressUpdate</span><span class="params">(Object... values)</span> </span>{
+    <span class="keyword">if</span> (<span class="keyword">this</span>.state == State.CANCELLED || values == <span class="keyword">null</span> || values.length == <span class="number">0</span> || callback ==
+            <span class="keyword">null</span>)
+        <span class="keyword">return</span>;
+    <span class="keyword">switch</span> ((Integer) values[<span class="number">0</span>]) {
+        <span class="keyword">case</span> UPDATE_START:
+            <span class="keyword">this</span>.state = State.STARTED;
+            callback.onStart();
+            <span class="keyword">break</span>;
+        <span class="keyword">case</span> UPDATE_LOADING:
+            <span class="keyword">if</span> (values.length != 3) <span class="keyword">return</span>;
+            <span class="keyword">this</span>.state = State.LOADING;
+            callback.onLoading(Long.valueOf(String.valueOf(values[<span class="number">1</span>])),
+                    Long.valueOf(String.valueOf(values[<span class="number">2</span>])), isUploading);
+            <span class="keyword">break</span>;
+        <span class="keyword">case</span> UPDATE_FAILURE:
+            <span class="keyword">if</span> (values.length != 3) <span class="keyword">return</span>;
+            <span class="keyword">this</span>.state = State.FAILURE;
+            callback.onFailure((HttpException) values[<span class="number">1</span>], (String) values[<span class="number">2</span>]);
+            <span class="keyword">break</span>;
+        <span class="keyword">case</span> UPDATE_SUCCESS:
+            <span class="keyword">if</span> (values.length != 2) <span class="keyword">return</span>;
+            <span class="keyword">this</span>.state = State.SUCCESS;
+            callback.onSuccess((ResponseInfo&lt;T&gt;) values[<span class="number">1</span>]);
+            <span class="keyword">break</span>;
+        <span class="keyword">default</span>:
+            <span class="keyword">break</span>;
+    }
+}
+</code></pre><h6 id="1-1-2-3-1-1-1-2_在子类HttpHandler处理上述抽象函数onCancelled(result);onPostExecute(result)未覆写;">1.1.2.3.1.1.1.2  在子类HttpHandler处理上述抽象函数onCancelled(result);onPostExecute(result)未覆写;</h6><pre><code><span class="comment">/**
+ * HttpHandler.java
+ * 覆写父类方法处理结束状态
+ * cancel request task.
+ */</span>
+<span class="annotation">@Override</span>
+<span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">cancel</span><span class="params">()</span> </span>{
+    <span class="keyword">this</span>.state = State.CANCELLED;
+
+    <span class="keyword">if</span> (request != <span class="keyword">null</span> &amp;&amp; !request.isAborted()) {
+        <span class="keyword">try</span> {
+            request.abort();
+        } <span class="keyword">catch</span> (Throwable e) {
+        }
+    }
+    <span class="keyword">if</span> (!<span class="keyword">this</span>.isCancelled()) {
+        <span class="keyword">try</span> {
+            <span class="keyword">this</span>.cancel(<span class="keyword">true</span>);<span class="comment">//调用父类方法去结束该异步任务</span>
+        } <span class="keyword">catch</span> (Throwable e) {
+        }
+    }
+
+    <span class="keyword">if</span> (callback != <span class="keyword">null</span>) {
+        callback.onCancelled();
+    }
+}
+
+<span class="comment">/**
+ * PriorityAsyncTask.java
+ * 处理异步任务的结束
+ */</span>
+<span class="keyword">public</span> <span class="keyword">final</span> <span class="function"><span class="keyword">boolean</span> <span class="title">cancel</span><span class="params">(<span class="keyword">boolean</span> mayInterruptIfRunning)</span> </span>{
+    mCancelled.set(<span class="keyword">true</span>);
+    <span class="function"><span class="keyword">return</span> mFuture.<span class="title">cancel</span><span class="params">(mayInterruptIfRunning)</span></span>;
+}
+</code></pre><h6 id="1-1-2-3-1-2_执行请求sendRequest(request);">1.1.2.3.1.2 执行请求sendRequest(request);</h6><pre><code><span class="comment">/**执行网络请求执行步骤：
+ * 1.获取重定向处理对象
+ * 2.死循环执行，首先判断如果是续传下载文件，根据新建的文件对象大小设置相应下载范围。
+ * 3.获取缓存文件，如果存在缓存直接返回响应对象
+ * 4.没有缓存去请求执行网络获取数据
+ * 5.处理获取的网络数据，并返回响应对象
+ * 6.遇到异常重新请求
+ *
+ * */</span>
+@SuppressWarnings<span class="params">(<span class="string">"unchecked"</span>)</span>
+private ResponseInfo&lt;T&gt; sendRequest<span class="params">(HttpRequestBase request)</span> throws HttpException {
+
+    HttpRequestRetryHandler retryHandler = client.getHttpRequestRetryHandler<span class="params">()</span>;<span class="comment">//请求重试回调：重定向</span>
+
+    while <span class="params">(<span class="literal">true</span>)</span> {
+        <span class="keyword">if</span> <span class="params">(autoResume &amp;&amp; isDownloadingFile)</span> {<span class="comment">//对应download(...)下载函数</span>
+            File downloadFile = new File<span class="params">(fileSavePath)</span>;<span class="comment">//文件保存位置</span>
+            long fileLen = <span class="number">0</span>;
+            <span class="keyword">if</span> <span class="params">(downloadFile.isFile<span class="params">()</span> &amp;&amp; downloadFile.exists<span class="params">()</span>)</span> {
+                fileLen = downloadFile.length<span class="params">()</span>;
+            }
+            <span class="keyword">if</span> <span class="params">(fileLen &gt; <span class="number">0</span>)</span> {<span class="comment">//断点接着下载</span>
+                request.setHeader<span class="params">(<span class="string">"RANGE"</span>, <span class="string">"bytes="</span> + fileLen + <span class="string">"-"</span>)</span>;
+            }
+        }
+
+        boolean retry = <span class="literal">true</span>;
+        IOException exception = null;
+
+        try {
+            requestMethod = request.getMethod<span class="params">()</span>;<span class="comment">//请求方式GET？POST？</span>
+            <span class="keyword">if</span> <span class="params">(HttpUtils.sHttpCache.isEnabled<span class="params">(requestMethod)</span>)</span> {<span class="comment">//默认GET方法可用</span>
+                String result = HttpUtils.sHttpCache.get<span class="params">(requestUrl)</span>;<span class="comment">//获取缓存</span>
+                <span class="keyword">if</span> <span class="params">(result != null)</span> {
+                    return new ResponseInfo&lt;T&gt;<span class="params">(null, <span class="params">(T)</span> result, <span class="literal">true</span>)</span>;
+                }
+            }
+            <span class="comment">//没有缓存</span>
+            ResponseInfo&lt;T&gt; responseInfo = null;
+            <span class="keyword">if</span> <span class="params">(!isCancelled<span class="params">()</span>)</span> {
+                HttpResponse response = client.execute<span class="params">(request, context)</span>;<span class="comment">//执行网络请求</span>
+                responseInfo = handleResponse<span class="params">(response)</span>;<span class="comment">//根据响应获得信息</span>
+            }
+            return responseInfo;
+        } catch <span class="params">(UnknownHostException e)</span> {
+            exception = e;
+            retry = retryHandler.retryRequest<span class="params">(exception, ++retriedCount, context)</span>;
+        } catch <span class="params">(IOException e)</span> {
+            exception = e;
+            retry = retryHandler.retryRequest<span class="params">(exception, ++retriedCount, context)</span>;
+        } catch <span class="params">(NullPointerException e)</span> {
+            exception = new IOException<span class="params">(e.getMessage<span class="params">()</span>)</span>;
+            exception.initCause<span class="params">(e)</span>;
+            retry = retryHandler.retryRequest<span class="params">(exception, ++retriedCount, context)</span>;
+        } catch <span class="params">(HttpException e)</span> {
+            throw e;
+        } catch <span class="params">(Throwable e)</span> {
+            exception = new IOException<span class="params">(e.getMessage<span class="params">()</span>)</span>;
+            exception.initCause<span class="params">(e)</span>;
+            retry = retryHandler.retryRequest<span class="params">(exception, ++retriedCount,
+                    context)</span>;<span class="comment">//确定时候在异常发生时重新请求</span>
+        }
+        <span class="keyword">if</span> <span class="params">(!retry)</span> {
+            throw new HttpException<span class="params">(exception)</span>;
+        }
+    }
+}
+</code></pre><h6 id="1-1-2-3-1-2-1_执行handleResponse(response);根据响应获得信息">1.1.2.3.1.2.1 执行handleResponse(response);根据响应获得信息</h6><pre><code> /**
+ * 处理网络响应执行步骤：
+ *<span class="number">1</span>.检查当前执行状态，如果是取消立即返回方法。
+ * <span class="number">2</span>.获取状态码判断网络请求状态
+ * <span class="number">3</span>.如果是请求成功，判断是否在下载文件或是字符串请求
+ * <span class="number">4</span>.对于文件下载，首先检查是否续传是否自动重命名，然后传入以上参数构造文件
+ * <span class="number">5</span>.对于字符串，首先获取数据，然后放入缓存，最后返回所得
+ * <span class="number">6</span>.对于重定向继续发送网络请求处理
+ *
+ * */
+@<span class="type">SuppressWarnings</span>(<span class="string">"unchecked"</span>)
+private <span class="type">ResponseInfo</span>&lt;T&gt; handleResponse(<span class="type">HttpResponse</span> response) throws <span class="type">HttpException</span>,
+        <span class="type">IOException</span> {
+    <span class="keyword">if</span> (response == null) {
+        throw new <span class="type">HttpException</span>(<span class="string">"response is null"</span>);
+    }
+    <span class="keyword">if</span> (isCancelled()) <span class="keyword">return</span> null;
+
+    <span class="type">StatusLine</span> status = response.getStatusLine();
+    <span class="type">int</span> statusCode = status.getStatusCode();
+    <span class="keyword">if</span> (statusCode &lt; <span class="number">300</span>) {//请求成功
+        <span class="type">Object</span> <span class="literal">result</span> = null;
+        <span class="type">HttpEntity</span> entity = response.getEntity();
+        <span class="keyword">if</span> (entity != null) {
+            isUploading = <span class="literal">false</span>;
+            <span class="keyword">if</span> (isDownloadingFile) {//是在下载文件
+                autoResume = autoResume &amp;&amp; <span class="type">OtherUtils</span>.isSupportRange(response);//自动续传
+                <span class="type">String</span> responseFileName = autoRename ? <span class="type">OtherUtils</span>.getFileNameFromHttpResponse
+                        (response) : null;//自动重命名
+                <span class="type">FileDownloadHandler</span> downloadHandler = new <span class="type">FileDownloadHandler</span>();
+                <span class="literal">result</span> = downloadHandler.handleEntity(entity, this, fileSavePath, autoResume,
+                        responseFileName);//根据响应获得文件
+            } <span class="keyword">else</span> {//不是在下载文件
+                <span class="type">StringDownloadHandler</span> downloadHandler = new <span class="type">StringDownloadHandler</span>();
+                <span class="literal">result</span> = downloadHandler.handleEntity(entity, this, charset);//处理获得的数据
+                <span class="keyword">if</span> (<span class="type">HttpUtils</span>.sHttpCache.isEnabled(requestMethod)) {//缓存字符串数据
+                    <span class="type">HttpUtils</span>.sHttpCache.put(requestUrl, (<span class="type">String</span>) <span class="literal">result</span>, expiry);
+                }
+            }
+        }
+        <span class="keyword">return</span> new <span class="type">ResponseInfo</span>&lt;T&gt;(response, (T) <span class="literal">result</span>, <span class="literal">false</span>);
+    } <span class="keyword">else</span> <span class="keyword">if</span> (statusCode == <span class="number">301</span> || statusCode == <span class="number">302</span>) {//请求的资源现在不存在
+        <span class="keyword">if</span> (httpRedirectHandler == null) {
+            httpRedirectHandler = new <span class="type">DefaultHttpRedirectHandler</span>();
+        }
+        <span class="type">HttpRequestBase</span> request = httpRedirectHandler.getDirectRequest(response);//重定向请求
+        <span class="keyword">if</span> (request != null) {
+            <span class="keyword">return</span> this.sendRequest(request);
+        }
+    } <span class="keyword">else</span> <span class="keyword">if</span> (statusCode == <span class="number">416</span>) {// <span class="type">Range</span> 中指定的任何数据范围都与当前资源的可用范围不重合，
+        throw new <span class="type">HttpException</span>(statusCode, <span class="string">"maybe the file has downloaded completely"</span>);
+    } <span class="keyword">else</span> {
+        throw new <span class="type">HttpException</span>(statusCode, status.getReasonPhrase());
+    }
+    <span class="keyword">return</span> null;
+}
+
+
+/**
+ * <span class="type">OthreUtils</span>.java工具类中的两个方法
+ * <span class="type">OthreUtils</span>.java
+ * 该响应是否支持数据范围字段
+ */
+public <span class="keyword">static</span> boolean isSupportRange(final <span class="type">HttpResponse</span> response) {
+    <span class="keyword">if</span> (response == null) <span class="keyword">return</span> <span class="literal">false</span>;
+    <span class="type">Header</span> header = response.getFirstHeader(<span class="string">"Accept-Ranges"</span>);
+    <span class="keyword">if</span> (header != null) {
+        <span class="keyword">return</span> <span class="string">"bytes"</span>.equals(header.getValue());
+    }
+    header = response.getFirstHeader(<span class="string">"Content-Range"</span>);
+    <span class="keyword">if</span> (header != null) {
+        <span class="type">String</span> value = header.getValue();
+        <span class="keyword">return</span> value != null &amp;&amp; value.startsWith(<span class="string">"bytes"</span>);
+    }
+    <span class="keyword">return</span> <span class="literal">false</span>;
+}
+
+/**
+ * <span class="type">OthreUtils</span>.java
+ * 从响应中获取文件名
+ */
+public <span class="keyword">static</span> <span class="type">String</span> getFileNameFromHttpResponse(final <span class="type">HttpResponse</span> response) {
+    <span class="keyword">if</span> (response == null) <span class="keyword">return</span> null;
+    <span class="type">String</span> <span class="literal">result</span> = null;
+    <span class="type">Header</span> header = response.getFirstHeader(<span class="string">"Content-Disposition"</span>);
+    <span class="keyword">if</span> (header != null) {
+        <span class="keyword">for</span> (<span class="type">HeaderElement</span> element : header.getElements()) {
+            <span class="type">NameValuePair</span> fileNamePair = element.getParameterByName(<span class="string">"filename"</span>);
+            <span class="keyword">if</span> (fileNamePair != null) {
+                <span class="literal">result</span> = fileNamePair.getValue();//获取文件名
+                // <span class="keyword">try</span> to get correct encoding str
+                <span class="literal">result</span> = <span class="type">CharsetUtils</span>.toCharset(<span class="literal">result</span>, <span class="type">HTTP</span>.<span class="type">UTF_8</span>, <span class="literal">result</span>.length());//重新编码
+                <span class="keyword">break</span>;
+            }
+        }
+    }
+    <span class="keyword">return</span> <span class="literal">result</span>;
+}
+</code></pre><h6 id="1-1-2-3-1-2-1-1_执行downloadHandler-handleEntity(entity,_this,_fileSavePath,_autoResume,responseFileName);根据响应获得文件">1.1.2.3.1.2.1.1 执行downloadHandler.handleEntity(entity, this, fileSavePath, autoResume,responseFileName);根据响应获得文件</h6><pre><code><span class="comment">/**
+ * FileDownloadHandler.java
+ * 1.先检查时候是续传，如果是构造追加输出流否则直接构造输出流
+ * 2.构造响应输入流，同时构造文件输出流
+ * 3.更新状态，如果处于任务取消状态直接返回当前文件
+ * 4.循环逐个读取输入写出到文件，同时更新状态，如果取消状态立即返回文件
+ * 5.强制更新状态，关闭流资源
+ * 6.重命名字段不为空，新建文件去重命名获得文件
+ * 7.返回文件
+ * */</span>
+public File handleEntity<span class="params">(HttpEntity entity,
+                         RequestCallBackHandler callBackHandler,
+                         String target,
+                         boolean isResume,
+                         String responseFileName)</span> throws IOException {
+    <span class="keyword">if</span> <span class="params">(entity == null || TextUtils.isEmpty<span class="params">(target)</span>)</span> {
+        return null;
+    }
+
+    File targetFile = new File<span class="params">(target)</span>;
+
+    <span class="keyword">if</span> <span class="params">(!targetFile.exists<span class="params">()</span>)</span> {
+        File dir = targetFile.getParentFile<span class="params">()</span>;
+        <span class="keyword">if</span> <span class="params">(dir.exists<span class="params">()</span> || dir.mkdirs<span class="params">()</span>)</span> {
+            targetFile.createNewFile<span class="params">()</span>;<span class="comment">//生成文件</span>
+        }
+    }
+
+    long current = <span class="number">0</span>;
+    BufferedInputStream bis = null;
+    BufferedOutputStream bos = null;
+    try {
+        FileOutputStream fileOutputStream = null;
+        <span class="keyword">if</span> <span class="params">(isResume)</span> {<span class="comment">//续传</span>
+            current = targetFile.length<span class="params">()</span>;<span class="comment">//记录已存在文件大小</span>
+            fileOutputStream = new FileOutputStream<span class="params">(target, <span class="literal">true</span>)</span>;<span class="comment">//文件流追加到文件后面</span>
+        } <span class="keyword">else</span> {
+            fileOutputStream = new FileOutputStream<span class="params">(target)</span>;
+        }
+
+        long total = entity.getContentLength<span class="params">()</span> + current;<span class="comment">//获取文件总长度</span>
+        bis = new BufferedInputStream<span class="params">(entity.getContent<span class="params">()</span>)</span>;<span class="comment">//获取输入流</span>
+        bos = new BufferedOutputStream<span class="params">(fileOutputStream)</span>;
+
+        <span class="keyword">if</span> <span class="params">(callBackHandler != null &amp;&amp; !callBackHandler.updateProgress<span class="params">(total, current, <span class="literal">true</span>)</span>)</span> {<span class="comment">//去强制更新进度，如果任务取消返回</span>
+            return targetFile;<span class="comment">//任务状态已取消，返回当前文件</span>
+        }
+
+        byte[] tmp = new byte[<span class="number">4096</span>];
+        int len;
+        while <span class="params">(<span class="params">(len = bis.read<span class="params">(tmp)</span>)</span> != -<span class="number">1</span>)</span> {
+            bos.write<span class="params">(tmp, <span class="number">0</span>, len)</span>;<span class="comment">//写文件</span>
+            current += len;<span class="comment">//记录文件长度</span>
+            <span class="keyword">if</span> <span class="params">(callBackHandler != null)</span> {
+                <span class="keyword">if</span> <span class="params">(!callBackHandler.updateProgress<span class="params">(total, current, <span class="literal">false</span>)</span>)</span> {<span class="comment">//去强制更新进度，如果任务取消返回</span>
+                    return targetFile;<span class="comment">//任务状态已取消，返回当前文件</span>
+                }
+            }
+        }
+        bos.flush<span class="params">()</span>;
+        <span class="keyword">if</span> <span class="params">(callBackHandler != null)</span> {
+            callBackHandler.updateProgress<span class="params">(total, current, <span class="literal">true</span>)</span>;<span class="comment">//去强制更新进度</span>
+        }
+    } finally {<span class="comment">//最后关闭流</span>
+        IOUtils.closeQuietly<span class="params">(bis)</span>;
+        IOUtils.closeQuietly<span class="params">(bos)</span>;
+    }
+
+    <span class="keyword">if</span> <span class="params">(targetFile.exists<span class="params">()</span> &amp;&amp; !TextUtils.isEmpty<span class="params">(responseFileName)</span>)</span> {<span class="comment">//重命名文件</span>
+        File newFile = new File<span class="params">(targetFile.getParent<span class="params">()</span>, responseFileName)</span>;
+        while <span class="params">(newFile.exists<span class="params">()</span>)</span> {<span class="comment">//避免文件名重复，新建直到文件不重复</span>
+            newFile = new File<span class="params">(targetFile.getParent<span class="params">()</span>, System.currentTimeMillis<span class="params">()</span> + responseFileName)</span>;
+        }
+        return targetFile.renameTo<span class="params">(newFile)</span> ? newFile : targetFile;<span class="comment">//修该命名</span>
+    } <span class="keyword">else</span> {
+        return targetFile;
+    }
+}
+</code></pre><h6 id="1-1-2-3-1-2-1-2_downloadHandler-handleEntity(entity,_this,_charset);处理获得的字符串数据">1.1.2.3.1.2.1.2 downloadHandler.handleEntity(entity, this, charset);处理获得的字符串数据</h6><pre><code>  <span class="comment">/**
+* StringDownloadHandler.java
+ * 执行步骤：
+ *1.获得数据总长度，更新状态
+ * 2.获取响应数据输入流，指定特定编码
+ * 3.循环组装获得的字符串，并更新状态
+ * 4.关闭流返回字符串
+ * */</span>
+
+<span class="keyword">public</span> <span class="keyword">String</span> handleEntity(HttpEntity entity, RequestCallBackHandler callBackHandler, <span class="keyword">String</span> charset) <span class="keyword">throws</span> IOException {
+    <span class="keyword">if</span> (entity == <span class="keyword">null</span>) <span class="keyword">return</span> <span class="keyword">null</span>;
+
+    <span class="keyword">long</span> current = <span class="number">0</span>;
+    <span class="keyword">long</span> total = entity.getContentLength();<span class="comment">//字符串总长度</span>
+
+    <span class="keyword">if</span> (callBackHandler != <span class="keyword">null</span> &amp;&amp; !callBackHandler.updateProgress(total, current, <span class="keyword">true</span>)) {<span class="comment">//更新状态，如果是取消状态就返回</span>
+        <span class="keyword">return</span> <span class="keyword">null</span>;
+    }
+
+    InputStream inputStream = <span class="keyword">null</span>;
+    StringBuilder sb = <span class="keyword">new</span> StringBuilder();
+    <span class="keyword">try</span> {
+        inputStream = entity.getContent();<span class="comment">//获取输入流</span>
+        <span class="keyword">BufferedReader</span> reader = <span class="keyword">new</span> <span class="keyword">BufferedReader</span>(<span class="keyword">new</span> InputStreamReader(inputStream, charset));
+        <span class="keyword">String</span> <span class="built_in">line</span> = <span class="string">""</span>;
+        <span class="keyword">while</span> ((<span class="built_in">line</span> = reader.readLine()) != <span class="keyword">null</span>) {
+            sb.<span class="built_in">append</span>(<span class="built_in">line</span>).<span class="built_in">append</span>(<span class="string">'\n'</span>);
+            current += OtherUtils.sizeOfString(<span class="built_in">line</span>, charset);<span class="comment">//累加字符串长度</span>
+            <span class="keyword">if</span> (callBackHandler != <span class="keyword">null</span>) {
+                <span class="keyword">if</span> (!callBackHandler.updateProgress(total, current, <span class="keyword">false</span>)) {<span class="comment">//更新状态，如果是取消状态就退出</span>
+                    <span class="keyword">break</span>;
+                }
+            }
+        }
+        <span class="keyword">if</span> (callBackHandler != <span class="keyword">null</span>) {<span class="comment">//更新状态</span>
+            callBackHandler.updateProgress(total, current, <span class="keyword">true</span>);
+        }
+    } <span class="keyword">finally</span> {<span class="comment">//关闭流</span>
+        IOUtils.closeQuietly(inputStream);
+    }
+    <span class="keyword">return</span> sb.toString().<span class="built_in">trim</span>();<span class="comment">//返回字符串</span>
+}
+</code></pre><h6 id="1-1-2-3-1-2-2_HttpUtils-sHttpCache缓存类">1.1.2.3.1.2.2 HttpUtils.sHttpCache缓存类</h6><pre><code><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">static</span> HttpCache sHttpCache = <span class="keyword">new</span> HttpCache();
+<span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">static</span> <span class="built_in">int</span> DEFAULT_CACHE_SIZE = <span class="number">1024</span> * <span class="number">100</span>;<span class="comment">// string length</span>
+<span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">static</span> <span class="keyword">long</span> DEFAULT_EXPIRY_TIME = <span class="number">1000</span> * <span class="number">60</span>; <span class="comment">// 60 seconds</span>
+ <span class="comment">/**
+ * HttpCache(HttpCache.DEFAULT_CACHE_SIZE, HttpCache.DEFAULT_EXPIRY_TIME);
+ */</span>
+<span class="keyword">public</span> HttpCache() {
+    <span class="keyword">this</span>(HttpCache.DEFAULT_CACHE_SIZE, HttpCache.DEFAULT_EXPIRY_TIME);
+}
+
+<span class="keyword">public</span> HttpCache(<span class="built_in">int</span> strLength, <span class="keyword">long</span> defaultExpiryTime) {
+    <span class="keyword">this</span>.cacheSize = strLength;
+    HttpCache.defaultExpiryTime = defaultExpiryTime;
+    mMemoryCache = <span class="keyword">new</span> LruMemoryCache&lt;<span class="keyword">String</span>, <span class="keyword">String</span>&gt;(<span class="keyword">this</span>.cacheSize) {
+        @Override
+        <span class="keyword">protected</span> <span class="built_in">int</span> sizeOf(<span class="keyword">String</span> <span class="variable">key</span>, <span class="keyword">String</span> value) {<span class="comment">//覆写方法返回每个缓存的大小</span>
+            <span class="keyword">if</span> (value == <span class="keyword">null</span>) <span class="keyword">return</span> <span class="number">0</span>;
+            <span class="keyword">return</span> value.length();
+        }
+    };
+}
+ <span class="comment">/**
+ * LruMemoryCache.java 构造方法
+ */</span>
+<span class="keyword">public</span> LruMemoryCache(<span class="built_in">int</span> maxSize) {
+    <span class="keyword">if</span> (maxSize &lt;= <span class="number">0</span>) {
+        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">"maxSize &lt;= 0"</span>);
+    }
+    <span class="keyword">this</span>.maxSize = maxSize;
+    <span class="comment">//第三个参数为 true , 意味着 按访问顺序构造最近最少访问的内部链表.</span>
+    <span class="comment">//这样在内部的链表中, 最近最少访问的排在最前面, 最多访问的排在后面. 迭代整个值是按链表从后往前的方式</span>
+    <span class="keyword">this</span>.<span class="built_in">map</span> = <span class="keyword">new</span> LinkedHashMap&lt;K, V&gt;(<span class="number">0</span>, <span class="number">0.75</span>f, <span class="keyword">true</span>);<span class="comment">//第一个参数是你要设置的初始大小；而程序内部实际的初始大小是1；的确如你所言，后面如果需要增大长度，按照capacity*loadFactor取整后增长；</span>
+    <span class="keyword">this</span>.keyExpiryMap = <span class="keyword">new</span> KeyExpiryMap&lt;K, Long&gt;(<span class="number">0</span>, <span class="number">0.75</span>f);<span class="comment">//ConcurrentHashMap子类</span>
+}
+
+<span class="comment">//存储为缓存</span>
+<span class="keyword">public</span> <span class="keyword">void</span> put(<span class="keyword">String</span> url, <span class="keyword">String</span> result) {
+    put(url, result, defaultExpiryTime);
+}
+
+<span class="keyword">public</span> <span class="keyword">void</span> put(<span class="keyword">String</span> url, <span class="keyword">String</span> result, <span class="keyword">long</span> expiry) {
+    <span class="keyword">if</span> (url == <span class="keyword">null</span> || result == <span class="keyword">null</span> || expiry &lt; <span class="number">1</span>) <span class="keyword">return</span>;
+
+    mMemoryCache.put(url, result, System.currentTimeMillis() + expiry);
+}
+</code></pre><h6 id="1-1-2-3-1-2-2-1_mMemoryCache-put(url,_result,_System-currentTimeMillis()_+_expiry);缓存数据">1.1.2.3.1.2.2.1 mMemoryCache.put(url, result, System.currentTimeMillis() + expiry);缓存数据</h6><pre><code><span class="comment">/**
+ * Caches {@code value} for {@code key}. The value is moved to the head of
+ * the queue.
+ *
+ * @return the previous value mapped by {@code key}.
+ * 执行步骤:
+ * 1.同步计算添加缓存后目前缓存总大小
+ * 2.检查缓存是否超过最大值
+ */</span>
+<span class="keyword">public</span> <span class="keyword">final</span> V put(K <span class="variable">key</span>, V value, <span class="keyword">long</span> expiryTimestamp) {
+    <span class="keyword">if</span> (<span class="variable">key</span> == <span class="keyword">null</span> || value == <span class="keyword">null</span>) {
+        <span class="keyword">throw</span> <span class="keyword">new</span> NullPointerException(<span class="string">"key == null || value == null"</span>);
+    }
+
+    V previous;
+    <span class="keyword">synchronized</span> (<span class="keyword">this</span>) {
+        putCount++;
+        <span class="built_in">size</span> += safeSizeOf(<span class="variable">key</span>, value);<span class="comment">//叠加缓存总大小</span>
+        previous = <span class="built_in">map</span>.put(<span class="variable">key</span>, value);
+        keyExpiryMap.put(<span class="variable">key</span>, expiryTimestamp);<span class="comment">//保存过期时间</span>
+        <span class="keyword">if</span> (previous != <span class="keyword">null</span>) {<span class="comment">//这个缓存前面已经存在</span>
+            <span class="built_in">size</span> -= safeSizeOf(<span class="variable">key</span>, previous);<span class="comment">//删除这个计算重复的大小</span>
+        }
+    }
+    <span class="keyword">if</span> (previous != <span class="keyword">null</span>) {
+        entryRemoved(<span class="keyword">false</span>, <span class="variable">key</span>, previous, value);<span class="comment">//通知已存在的指已被替换</span>
+    }
+    trimToSize(maxSize);<span class="comment">//检查缓存是否超出最大值</span>
+    <span class="keyword">return</span> previous;
+}
+
+<span class="comment">/**
+ * @param maxSize the maximum size of the cache before returning. May be -1
+ *                to evict even 0-sized elements.
+ */</span>
+<span class="keyword">private</span> <span class="keyword">void</span> trimToSize(<span class="built_in">int</span> maxSize) {
+    <span class="keyword">while</span> (<span class="keyword">true</span>) {
+        K <span class="variable">key</span>;
+        V value;
+        <span class="keyword">synchronized</span> (<span class="keyword">this</span>) {
+            <span class="keyword">if</span> (<span class="built_in">size</span> &lt;= maxSize || <span class="built_in">map</span>.isEmpty()) {<span class="comment">//当前缓存大小未超过最大值</span>
+                <span class="keyword">break</span>;
+            }
+            <span class="comment">//超过最大缓存数，去删除最旧的数据</span>
+            Map.Entry&lt;K, V&gt; toEvict = <span class="built_in">map</span>.entrySet().iterator().next();
+            <span class="variable">key</span> = toEvict.getKey();
+            value = toEvict.getValue();
+            <span class="built_in">map</span>.remove(<span class="variable">key</span>);
+            keyExpiryMap.remove(<span class="variable">key</span>);
+            <span class="built_in">size</span> -= safeSizeOf(<span class="variable">key</span>, value);
+            evictionCount++;
+        }
+
+        entryRemoved(<span class="keyword">true</span>, <span class="variable">key</span>, value, <span class="keyword">null</span>);
+    }
+}
+</code></pre>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2015/05/31/XUtils网络请求模块源码分析/" data-id="cibi04q5t00052xgqqgxgnnfg" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/源码分析/">源码分析</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2015/06/11/XUtil图片模块源码分析/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          XUtils图片模块源码分析
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2015/05/20/XUtils数据库模块源码分析/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">XUtils数据库模块源码分析</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/源码分析/">源码分析</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/源码分析/" style="font-size: 10px;">源码分析</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/06/11/XUtil图片模块源码分析/">XUtils图片模块源码分析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/05/31/XUtils网络请求模块源码分析/">XUtils网络请求模块源码分析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/05/20/XUtils数据库模块源码分析/">XUtils数据库模块源码分析</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 Leif<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+  </div>
+</body>
+</html>

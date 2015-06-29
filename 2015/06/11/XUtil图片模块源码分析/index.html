@@ -1,0 +1,1632 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>XUtils图片模块源码分析 | Leif&#39;s Home</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="详细分析XUtils的Bitmap下载缓存显示模块代码调用情况。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="XUtils图片模块源码分析">
+<meta property="og:url" content="http://yoursite.com/2015/06/11/XUtil图片模块源码分析/index.html">
+<meta property="og:site_name" content="Leif's Home">
+<meta property="og:description" content="详细分析XUtils的Bitmap下载缓存显示模块代码调用情况。">
+<meta property="og:image" content="http://preview.quanjing.com/afl005/afd-ikn-47851.jpg">
+<meta property="og:updated_time" content="2015-06-17T14:53:26.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="XUtils图片模块源码分析">
+<meta name="twitter:description" content="详细分析XUtils的Bitmap下载缓存显示模块代码调用情况。">
+  
+    <link rel="alternative" href="/atom.xml" title="Leif&#39;s Home" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Leif&#39;s Home</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">Just do id!</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://yoursite.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-XUtil图片模块源码分析" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2015/06/11/XUtil图片模块源码分析/" class="article-date">
+  <time datetime="2015-06-11T11:48:50.000Z" itemprop="datePublished">2015-06-11</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      XUtils图片模块源码分析
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p><img src="http://preview.quanjing.com/afl005/afd-ikn-47851.jpg" alt="img caption"><br>详细分析XUtils的Bitmap下载缓存显示模块代码调用情况。<br><a id="more"></a></p>
+<h2 id="1-BitmapUtils对象创建">1.BitmapUtils对象创建</h2><pre><code>bitmapUtils = <span class="keyword">new</span> BitmapUtils(appContext);
+
+<span class="function"><span class="keyword">public</span> <span class="title">BitmapUtils</span><span class="params">(Context context)</span> </span>{
+    <span class="keyword">this</span>(context, <span class="keyword">null</span>);
+}
+
+<span class="function"><span class="keyword">public</span> <span class="title">BitmapUtils</span><span class="params">(Context context, String diskCachePath)</span> </span>{
+    <span class="keyword">if</span> (context == <span class="keyword">null</span>) {
+        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">"context may not be null"</span>);
+    }
+
+    <span class="keyword">this</span>.context = context.getApplicationContext();
+    globalConfig = BitmapGlobalConfig.getInstance(<span class="keyword">this</span>.context, diskCachePath);
+    defaultDisplayConfig = <span class="keyword">new</span> BitmapDisplayConfig();
+}
+
+<span class="function"><span class="keyword">public</span> <span class="title">BitmapUtils</span><span class="params">(Context context, String diskCachePath, <span class="keyword">int</span> memoryCacheSize)</span> </span>{
+    <span class="keyword">this</span>(context, diskCachePath);
+    globalConfig.setMemoryCacheSize(memoryCacheSize);<span class="comment">//内存缓存大小</span>
+}
+
+<span class="function"><span class="keyword">public</span> <span class="title">BitmapUtils</span><span class="params">(Context context, String diskCachePath, <span class="keyword">int</span> memoryCacheSize, <span class="keyword">int</span>
+        diskCacheSize)</span> </span>{
+    <span class="keyword">this</span>(context, diskCachePath);
+    globalConfig.setMemoryCacheSize(memoryCacheSize);
+    globalConfig.setDiskCacheSize(diskCacheSize);<span class="comment">//磁盘缓存大小</span>
+}
+
+<span class="function"><span class="keyword">public</span> <span class="title">BitmapUtils</span><span class="params">(Context context, String diskCachePath, <span class="keyword">float</span> memoryCachePercent)</span> </span>{
+    <span class="keyword">this</span>(context, diskCachePath);
+    globalConfig.setMemCacheSizePercent(memoryCachePercent);
+}
+
+<span class="function"><span class="keyword">public</span> <span class="title">BitmapUtils</span><span class="params">(Context context, String diskCachePath, <span class="keyword">float</span> memoryCachePercent, <span class="keyword">int</span>
+        diskCacheSize)</span> </span>{
+    <span class="keyword">this</span>(context, diskCachePath);
+    globalConfig.setMemCacheSizePercent(memoryCachePercent);
+    globalConfig.setDiskCacheSize(diskCacheSize);
+}
+</code></pre><h3 id="1-1_获取BitmapGlobalConfig对象BitmapGlobalConfig-getInstance(this-context,_diskCachePath);">1.1 获取BitmapGlobalConfig对象BitmapGlobalConfig.getInstance(this.context, diskCachePath);</h3><pre><code><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">static</span> <span class="function">BitmapGlobalConfig <span class="title">getInstance</span><span class="params">(Context context,
+                                                          String diskCachePath)</span> </span>{
+    <span class="keyword">if</span> (TextUtils.isEmpty(diskCachePath)) {
+        diskCachePath = OtherUtils.getDiskCacheDir(context, <span class="string">"xBitmapCache"</span>);<span class="comment">//缓存路径</span>
+    }
+    <span class="keyword">if</span> (configMap.containsKey(diskCachePath)) {<span class="comment">//有缓存的对象</span>
+        <span class="function"><span class="keyword">return</span> configMap.<span class="title">get</span><span class="params">(diskCachePath)</span></span>;
+    } <span class="keyword">else</span> {
+        BitmapGlobalConfig config = <span class="keyword">new</span> BitmapGlobalConfig(context, diskCachePath);
+        configMap.put(diskCachePath, config);
+        <span class="keyword">return</span> config;
+    }
+}
+
+
+<span class="comment">/**
+ * <span class="doctag">@param</span> context
+ * <span class="doctag">@param</span> dirName Only the folder name, not full path.
+ * <span class="doctag">@return</span> app_cache_path/dirName
+ * 1.检查外部存储如果挂载去获取外部缓存路径
+ * 2.如果获取外部缓存路径为空，获取内部缓存路径
+ */</span>
+<span class="keyword">public</span> <span class="keyword">static</span> <span class="function">String <span class="title">getDiskCacheDir</span><span class="params">(Context context, String dirName)</span> </span>{
+    String cachePath = <span class="keyword">null</span>;
+    <span class="keyword">if</span> (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {<span class="comment">//外部存储挂载</span>
+        File externalCacheDir = context.getExternalCacheDir();
+        <span class="keyword">if</span> (externalCacheDir != <span class="keyword">null</span>) {
+            cachePath = externalCacheDir.getPath();
+        }
+    }
+    <span class="keyword">if</span> (cachePath == <span class="keyword">null</span>) {
+        File cacheDir = context.getCacheDir();
+        <span class="keyword">if</span> (cacheDir != <span class="keyword">null</span> &amp;&amp; cacheDir.exists()) {
+            cachePath = cacheDir.getPath();
+        }
+    }
+    <span class="keyword">return</span> cachePath + File.separator + dirName;
+}
+
+
+<span class="comment">/**
+ * <span class="doctag">@param</span> context
+ * <span class="doctag">@param</span> diskCachePath If null, use default appCacheDir+"/xBitmapCache"
+ * BitmapGlobalConfig构造函数
+ */</span>
+<span class="function"><span class="keyword">private</span> <span class="title">BitmapGlobalConfig</span><span class="params">(Context context, String diskCachePath)</span> </span>{
+    <span class="keyword">if</span> (context == <span class="keyword">null</span>) <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">"context may not be null"</span>);
+    <span class="keyword">this</span>.mContext = context;
+    <span class="keyword">this</span>.diskCachePath = diskCachePath;
+    initBitmapCache();
+}
+</code></pre><h4 id="1-1-1_初始化磁盘与内存缓存initBitmapCache();">1.1.1 初始化磁盘与内存缓存initBitmapCache();</h4><pre><code> <span class="comment">/**
+ * 初始化内存缓存与磁盘缓存
+ */</span>
+<span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">initBitmapCache</span>(<span class="params"></span>) </span>{
+    <span class="keyword">new</span> BitmapCacheManagementTask().execute(BitmapCacheManagementTask
+            .MESSAGE_INIT_MEMORY_CACHE);
+    <span class="keyword">new</span> BitmapCacheManagementTask().execute(BitmapCacheManagementTask.MESSAGE_INIT_DISK_CACHE);
+}
+
+
+
+    @Override
+    <span class="keyword">protected</span> Object[] doInBackground(Object... <span class="keyword">params</span>) {
+        <span class="keyword">if</span> (<span class="keyword">params</span> == <span class="keyword">null</span> || <span class="keyword">params</span>.length == <span class="number">0</span>) <span class="keyword">return</span> <span class="keyword">params</span>;
+        BitmapCache cache = getBitmapCache();
+        <span class="keyword">if</span> (cache == <span class="keyword">null</span>) <span class="keyword">return</span> <span class="keyword">params</span>;
+        <span class="keyword">try</span> {
+            <span class="keyword">switch</span> ((Integer) <span class="keyword">params</span>[<span class="number">0</span>]) {
+                <span class="keyword">case</span> MESSAGE_INIT_MEMORY_CACHE:
+                    cache.initMemoryCache();<span class="comment">//初始化内存缓存</span>
+                    <span class="keyword">break</span>;
+                <span class="keyword">case</span> MESSAGE_INIT_DISK_CACHE:
+                    cache.initDiskCache();<span class="comment">//初始化磁盘缓存</span>
+                    <span class="keyword">break</span>;
+                <span class="keyword">case</span> MESSAGE_FLUSH:
+                    cache.flush();
+                    <span class="keyword">break</span>;
+                <span class="keyword">case</span> MESSAGE_CLOSE:
+                    cache.clearMemoryCache();
+                    cache.close();
+                    <span class="keyword">break</span>;
+                <span class="keyword">case</span> MESSAGE_CLEAR:
+                    cache.clearCache();
+                    <span class="keyword">break</span>;
+                <span class="keyword">case</span> MESSAGE_CLEAR_MEMORY:
+                    cache.clearMemoryCache();
+                    <span class="keyword">break</span>;
+                <span class="keyword">case</span> MESSAGE_CLEAR_DISK:
+                    cache.clearDiskCache();
+                    <span class="keyword">break</span>;
+                <span class="keyword">case</span> MESSAGE_CLEAR_BY_KEY:
+                    <span class="keyword">if</span> (<span class="keyword">params</span>.length != <span class="number">2</span>) <span class="keyword">return</span> <span class="keyword">params</span>;
+                    cache.clearCache(String.valueOf(<span class="keyword">params</span>[<span class="number">1</span>]));
+                    <span class="keyword">break</span>;
+                <span class="keyword">case</span> MESSAGE_CLEAR_MEMORY_BY_KEY:
+                    <span class="keyword">if</span> (<span class="keyword">params</span>.length != <span class="number">2</span>) <span class="keyword">return</span> <span class="keyword">params</span>;
+                    cache.clearMemoryCache(String.valueOf(<span class="keyword">params</span>[<span class="number">1</span>]));
+                    <span class="keyword">break</span>;
+                <span class="keyword">case</span> MESSAGE_CLEAR_DISK_BY_KEY:
+                    <span class="keyword">if</span> (<span class="keyword">params</span>.length != <span class="number">2</span>) <span class="keyword">return</span> <span class="keyword">params</span>;
+                    cache.clearDiskCache(String.valueOf(<span class="keyword">params</span>[<span class="number">1</span>]));
+                    <span class="keyword">break</span>;
+                <span class="keyword">default</span>:
+                    <span class="keyword">break</span>;
+            }
+        } <span class="keyword">catch</span> (Throwable e) {
+            LogUtils.e(e.getMessage(), e);
+        }
+        <span class="keyword">return</span> <span class="keyword">params</span>;
+    }
+</code></pre><h4 id="1-1-1-1_初始化内存缓存_initMemoryCache()；">1.1.1.1 初始化内存缓存 initMemoryCache()；</h4><pre><code> <span class="comment">/**
+ * Initialize the memory cache
+ * 1.判断是否打开内存缓存，未打开就返回
+ * 2.如果LruMemoryCache对象不为空就清空缓存
+ * 3.LruMemoryCache对象为空就去新建对象覆写方法返回每个缓存单元的大小
+ */</span>
+<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">initMemoryCache</span>(<span class="params"></span>) </span>{
+    <span class="keyword">if</span> (!globalConfig.isMemoryCacheEnabled()) <span class="keyword">return</span>;
+
+    <span class="comment">// Set up memory cache</span>
+    <span class="keyword">if</span> (mMemoryCache != <span class="keyword">null</span>) {
+        <span class="keyword">try</span> {
+            clearMemoryCache();
+        } <span class="keyword">catch</span> (Throwable e) {
+        }
+    }
+    mMemoryCache = <span class="keyword">new</span> LruMemoryCache&lt;MemoryCacheKey, Bitmap&gt;(globalConfig.getMemoryCacheSize
+            ()) {
+        <span class="comment">/**
+         * Measure item size in bytes rather than units which is more practical
+         * for a bitmap cache
+         */</span>
+        @<span class="function">Override
+        <span class="keyword">protected</span> <span class="keyword">int</span> <span class="title">sizeOf</span>(<span class="params">MemoryCacheKey key, Bitmap bitmap</span>) </span>{
+            <span class="keyword">if</span> (bitmap == <span class="keyword">null</span>) <span class="keyword">return</span> <span class="number">0</span>;
+            <span class="keyword">return</span> bitmap.getRowBytes() * bitmap.getHeight();
+        }
+    };
+}
+</code></pre><h4 id="1-1-1-2_初始化磁盘缓存_initDiskCache()_；">1.1.1.2 初始化磁盘缓存   initDiskCache() ；</h4><pre><code><span class="comment">/**
+ * Initializes the disk cache.  Note that this includes disk access so this should not be
+ * executed on the main/UI thread. By default an ImageCache does not initialize the disk
+ * cache when it is created, instead you should call initDiskCache() to initialize it on a
+ * background thread.
+ * 初始化磁盘缓存
+ * 1.获取缓存路径生成文件目录，确定可缓存磁盘占用空间大小
+ * 2.根据条件open相应LruDiskCache对象
+ * 3.设置文件名设置器
+ */</span>
+public void initDiskCache<span class="params">()</span> {
+    <span class="comment">// Set up disk cache</span>
+    synchronized <span class="params">(mDiskCacheLock)</span> {
+        <span class="keyword">if</span> <span class="params">(globalConfig.isDiskCacheEnabled<span class="params">()</span> &amp;&amp; <span class="params">(mDiskLruCache == null || mDiskLruCache
+                .isClosed<span class="params">()</span>)</span>)</span> {
+            File diskCacheDir = new File<span class="params">(globalConfig.getDiskCachePath<span class="params">()</span>)</span>;
+            <span class="keyword">if</span> <span class="params">(diskCacheDir.exists<span class="params">()</span> || diskCacheDir.mkdirs<span class="params">()</span>)</span> {
+                long availableSpace = OtherUtils.getAvailableSpace<span class="params">(diskCacheDir)</span>;<span class="comment">//目录总可用空间</span>
+                long diskCacheSize = globalConfig.getDiskCacheSize<span class="params">()</span>;<span class="comment">//磁盘缓存大小</span>
+                diskCacheSize = availableSpace &gt; diskCacheSize ? diskCacheSize : availableSpace;
+                try {
+                    <span class="comment">//第一个参数指定的是数据的缓存地址，第二个参数指定当前应用程序的版本号，第三个参数指定同一个key可以对应多少个缓存文件，基本都是传1</span>
+                    <span class="comment">// ，第四个参数指定最多可以缓存多少字节的数据。</span>
+                    mDiskLruCache = LruDiskCache.open<span class="params">(diskCacheDir, <span class="number">1</span>, <span class="number">1</span>, diskCacheSize)</span>;
+                    mDiskLruCache.setFileNameGenerator<span class="params">(globalConfig.getFileNameGenerator<span class="params">()</span>)</span>;
+                    LogUtils.d<span class="params">(<span class="string">"create disk cache success"</span>)</span>;
+                } catch <span class="params">(Throwable e)</span> {
+                    mDiskLruCache = null;
+                    LogUtils.e<span class="params">(<span class="string">"create disk cache error"</span>, e)</span>;
+                }
+            }
+        }
+    }
+}
+
+
+<span class="comment">/**
+ * OthreUtils.java
+ * 返回文件对应目录下可用空间
+ * */</span>
+public static long getAvailableSpace<span class="params">(File dir)</span> {
+    try {
+        final StatFs stats = new StatFs<span class="params">(dir.getPath<span class="params">()</span>)</span>;
+        return <span class="params">(long)</span> stats.getBlockSize<span class="params">()</span> <span class="built_in">*</span> <span class="params">(long)</span> stats.getAvailableBlocks<span class="params">()</span>;
+    } catch <span class="params">(Throwable e)</span> {
+        LogUtils.e<span class="params">(e.getMessage<span class="params">()</span>, e)</span>;
+        return -<span class="number">1</span>;
+    }
+
+}
+</code></pre><h4 id="1-1-1-2-1_新建LruDiskCache对象LruDiskCache-open(diskCacheDir,_1,_1,_diskCacheSize);">1.1.1.2.1 新建LruDiskCache对象LruDiskCache.open(diskCacheDir, 1, 1, diskCacheSize);</h4><pre><code><span class="comment">/**
+ * Opens the cache in {@code directory}, creating a cache if none exists
+ * there.
+ *
+ * @param directory  a writable directory
+ * @param valueCount the number of values per cache entry. Must be positive.
+ * @param maxSize    the maximum number of bytes this cache should use to store
+ * @throws IOException if reading or writing the cache directory fails
+ *                     &lt;p/&gt;
+ *                     LruDiskCache.java
+ *                     1.判断传入参数是否合理，不合理抛异常。
+ *                     2.如果日志文件存在，读取日志内容生成缓存实体并设置，计算缓存文件总大小。生成日志文件输入流
+ *                     3.如果日志文件不存在，新建文件
+ *                     4.返回LruDiskCache对象
+ */</span>
+public static LruDiskCache open<span class="params">(File directory, int appVersion, int valueCount, long maxSize)</span>
+        throws IOException {
+    <span class="keyword">if</span> <span class="params">(maxSize &lt;= <span class="number">0</span>)</span> {
+        throw new IllegalArgumentException<span class="params">(<span class="string">"maxSize &lt;= 0"</span>)</span>;
+    }
+    <span class="keyword">if</span> <span class="params">(valueCount &lt;= <span class="number">0</span>)</span> {
+        throw new IllegalArgumentException<span class="params">(<span class="string">"valueCount &lt;= 0"</span>)</span>;
+    }
+
+    <span class="comment">// If a bkp file exists, use it instead.</span>
+    File backupFile = new File<span class="params">(directory, JOURNAL_FILE_BACKUP)</span>;
+    <span class="keyword">if</span> <span class="params">(backupFile.exists<span class="params">()</span>)</span> {<span class="comment">//日志备份文件存在</span>
+        File journalFile = new File<span class="params">(directory, JOURNAL_FILE)</span>;
+        <span class="comment">// If journal file also exists just delete backup file.</span>
+        <span class="keyword">if</span> <span class="params">(journalFile.exists<span class="params">()</span>)</span> {<span class="comment">//源文件也存在，删除备份</span>
+            backupFile.delete<span class="params">()</span>;
+        } <span class="keyword">else</span> {
+            renameTo<span class="params">(backupFile, journalFile, <span class="literal">false</span>)</span>;
+        }
+    }
+
+    <span class="comment">// Prefer to pick up where we left off.</span>
+    LruDiskCache cache = new LruDiskCache<span class="params">(directory, appVersion, valueCount, maxSize)</span>;
+    <span class="keyword">if</span> <span class="params">(cache.journalFile.exists<span class="params">()</span>)</span> {<span class="comment">//日志文件存在</span>
+        try {
+            cache.readJournal<span class="params">()</span>;<span class="comment">//读取日志</span>
+            cache.processJournal<span class="params">()</span>;<span class="comment">//计算总大小</span>
+            cache.journalWriter = new BufferedWriter<span class="params">(new OutputStreamWriter<span class="params">(new
+                    FileOutputStream<span class="params">(cache.journalFile, <span class="literal">true</span>)</span>, HTTP.US_ASCII)</span>)</span>;<span class="comment">//写文件流</span>
+            return cache;
+        } catch <span class="params">(Throwable journalIsCorrupt)</span> {
+            LogUtils.e<span class="params">(<span class="string">"DiskLruCache "</span> + directory + <span class="string">" is corrupt: "</span> + journalIsCorrupt
+                    .getMessage<span class="params">()</span> + <span class="string">", removing"</span>, journalIsCorrupt)</span>;
+            cache.delete<span class="params">()</span>;
+        }
+    }
+
+    <span class="comment">// Create a new empty cache.</span>
+    <span class="comment">//重建一个日志文件。</span>
+    <span class="keyword">if</span> <span class="params">(directory.exists<span class="params">()</span> || directory.mkdirs<span class="params">()</span>)</span> {
+        cache = new LruDiskCache<span class="params">(directory, appVersion, valueCount, maxSize)</span>;
+        cache.rebuildJournal<span class="params">()</span>;
+    }
+    return cache;
+}
+</code></pre><h5 id="1-1-1-2-1-1_读取日志文件cache-readJournal();">1.1.1.2.1.1 读取日志文件cache.readJournal();</h5><pre><code><span class="comment">/**
+ * 读取日志文件，设置缓存实体必要信息。
+ * 执行步骤：
+ * 1.读取日志头部，判断是否合理。
+ * 2.循环读取日志内容。
+ */</span>
+private void readJournal<span class="params">()</span> throws IOException {
+    StrictLineReader reader = null;
+    try {
+        reader = new StrictLineReader<span class="params">(new FileInputStream<span class="params">(journalFile)</span>)</span>;
+        String magic = reader.readLine<span class="params">()</span>;<span class="comment">//第一行是个固定的字符串“libcore.io</span>
+        <span class="comment">// .DiskLruCache”，标志着我们使用的是DiskLruCache技术。</span>
+        String <span class="built_in">version</span> = reader.readLine<span class="params">()</span>;<span class="comment">//第二行是DiskLruCache的版本号，这个值是恒为1的.</span>
+        String appVersionString = reader.readLine<span class="params">()</span>;<span class="comment">//第三行是应用程序的版本号，我们在open()</span>
+        <span class="comment">// 方法里传入的版本号是什么这里就会显示什么。</span>
+        String valueCountString = reader.readLine<span class="params">()</span>;<span class="comment">//第四行是valueCount，这个值也是在open()</span>
+        <span class="comment">// 方法中传入的，通常情况下都为1。</span>
+        String blank = reader.readLine<span class="params">()</span>;<span class="comment">//第五行是一个空行。</span>
+        <span class="keyword">if</span> <span class="params">(!MAGIC.equals<span class="params">(magic)</span> || !VERSION.equals<span class="params">(version)</span> || !Integer.toString<span class="params">(appVersion)</span>
+                .equals<span class="params">(appVersionString)</span> || !Integer.toString<span class="params">(valueCount)</span>.equals
+                <span class="params">(valueCountString)</span> || !<span class="string">""</span>.equals<span class="params">(blank)</span>)</span> {
+            throw new IOException<span class="params">(<span class="string">"unexpected journal header: ["</span> + magic + <span class="string">", "</span> +
+                    <span class="string">""</span> + version + <span class="string">", "</span> + valueCountString + <span class="string">", "</span> + blank + <span class="string">"]"</span>)</span>;
+        }
+
+        int lineCount = <span class="number">0</span>;
+        while <span class="params">(<span class="literal">true</span>)</span> {<span class="comment">//死循环读取日志文件</span>
+            try {
+                readJournalLine<span class="params">(reader.readLine<span class="params">()</span>)</span>;
+                lineCount++;
+            } catch <span class="params">(EOFException endOfJournal)</span> {
+                break;
+            }
+        }
+        redundantOpCount = lineCount - lruEntries.size<span class="params">()</span>;
+    } finally {
+        IOUtils.closeQuietly<span class="params">(reader)</span>;
+    }
+}
+
+
+ <span class="comment">/**
+     * Reads the next line. A line ends with {@code "\n"} or {@code "\r\n"},
+     * this end of line marker is not included in the result.
+     *
+     * @return the next line from the input.
+     * @throws IOException  for underlying {@code InputStream} errors.
+     * @throws EOFException for the end of source stream.
+     *                      StrictLineReader.java
+     *                      读取日志文件
+     *                      1.读取文件输入到字节数组，初始化位置变量
+     *                      2.对字节数组逐个遍历，遇到换行符构造字符串返回并且更新位置变量
+     *                      3.如果字符数组不存在换行符，新建ByteArrayOutputStream假设已读出80字节，覆写toString
+     *                      4.死循环内循环判断遇到换行符ByteArrayOutputStream写出到字节缓存，更新位置变量，返回toString
+     */</span>
+    public String readLine<span class="params">()</span> throws IOException {
+        synchronized <span class="params">(in)</span> {
+            <span class="keyword">if</span> <span class="params">(buf == null)</span> {
+                throw new IOException<span class="params">(<span class="string">"LineReader is closed"</span>)</span>;
+            }
+
+            <span class="comment">// Read more data if we are at the end of the buffered data.</span>
+            <span class="comment">// Though it's an error to read after an exception, we will let {@code fillBuf()}</span>
+            <span class="comment">// throw again if that happens; thus we need to handle end == -1 as well as end</span>
+            <span class="comment">// == pos.</span>
+            <span class="comment">//初始化pos与end变量</span>
+            <span class="keyword">if</span> <span class="params">(pos &gt;= end)</span> {
+                fillBuf<span class="params">()</span>;
+            }
+            <span class="comment">// Try to find LF in the buffered data and return the line if successful.</span>
+            <span class="keyword">for</span> <span class="params">(int i = pos; i != end; ++i)</span> {
+                <span class="keyword">if</span> <span class="params">(buf[i] == LF)</span> {<span class="comment">//新行</span>
+                    int lineEnd = <span class="params">(i != pos &amp;&amp; buf[i - <span class="number">1</span>] == CR)</span> ? i - <span class="number">1</span> : i;<span class="comment">//lineEnd之后为换行</span>
+                    String res = new String<span class="params">(buf, pos, lineEnd - pos, charset.name<span class="params">()</span>)</span>;
+                    pos = i + <span class="number">1</span>;<span class="comment">//重置起始位</span>
+                    return res;
+                }
+            }
+
+            <span class="comment">// Let's anticipate up to 80 characters on top of those already read.</span>
+            <span class="comment">//假定80个字符已经读出</span>
+            ByteArrayOutputStream out = new ByteArrayOutputStream<span class="params">(end - pos + <span class="number">80</span>)</span> {
+                @Override
+                public String toString<span class="params">()</span> {
+                    int length = <span class="params">(count &gt; <span class="number">0</span> &amp;&amp; buf[count - <span class="number">1</span>] == CR)</span> ? count - <span class="number">1</span> : count;
+                    try {
+                        return new String<span class="params">(buf, <span class="number">0</span>, length, charset.name<span class="params">()</span>)</span>;
+                    } catch <span class="params">(UnsupportedEncodingException e)</span> {
+                        throw new AssertionError<span class="params">(e)</span>; <span class="comment">// Since we control the charset this</span>
+                        <span class="comment">// will never happen.</span>
+                    }
+                }
+            };
+
+            while <span class="params">(<span class="literal">true</span>)</span> {
+                out.write<span class="params">(buf, pos, end - pos)</span>;<span class="comment">//将数据写入字节数组缓存</span>
+                <span class="comment">// Mark unterminated line in case fillBuf throws EOFException or IOException.</span>
+                end = -<span class="number">1</span>;
+                fillBuf<span class="params">()</span>;
+                <span class="comment">// Try to find LF in the buffered data and return the line if successful.</span>
+                <span class="keyword">for</span> <span class="params">(int i = pos; i != end; ++i)</span> {
+                    <span class="keyword">if</span> <span class="params">(buf[i] == LF)</span> {<span class="comment">//新行</span>
+                        <span class="keyword">if</span> <span class="params">(i != pos)</span> {
+                            out.write<span class="params">(buf, pos, i - pos)</span>;<span class="comment">//写出这一行</span>
+                        }
+                        out.flush<span class="params">()</span>;
+                        pos = i + <span class="number">1</span>;
+                        return out.toString<span class="params">()</span>;
+                    }
+                }
+            }
+        }
+    }
+
+  <span class="comment">/**
+     * Reads new input data into the buffer. Call only with pos == end or end == -1,
+     * depending on the desired outcome if the function throws.
+     */</span>
+    private void fillBuf<span class="params">()</span> throws IOException {
+        int result = in.read<span class="params">(buf, <span class="number">0</span>, buf.length)</span>;
+        <span class="keyword">if</span> <span class="params">(result == -<span class="number">1</span>)</span> {
+            throw new EOFException<span class="params">()</span>;
+        }
+        pos = <span class="number">0</span>;
+        end = result;
+    }
+</code></pre><h5 id="1-1-1-2-1-1-1_readJournalLine(reader-readLine());">1.1.1.2.1.1.1 readJournalLine(reader.readLine());</h5><pre><code><span class="comment">/**
+ * 读取日志文件内容。
+ * 注意日志格式例如：D xxxxxxxx
+ * 第六行是以一个DIRTY前缀开始的，后面紧跟着缓存图片的key。
+ * 通常我们看到DIRTY这个字样都不代表着什么好事情，意味着这是一条脏数据。
+ * 没错，每当我们调用一次DiskLruCache的edit()方法时，都会向journal文件中写入一条DIRTY记录，表示我们正准备写入一条缓存数据，但不知结果如何。
+ * 然后调用commit()方法表示写入缓存成功，这时会向journal中写入一条CLEAN记录，意味着这条“脏”数据被“洗干净了”，调用abort()
+ * 方法表示写入缓存失败，这时会向journal中写入一条REMOVE记录。
+ * 也就是说，每一行DIRTY的key，后面都应该有一行对应的CLEAN或者REMOVE的记录，否则这条数据就是“脏”的，会被自动删除掉。
+ * 除了CLEAN前缀和key之外，后面还有一个152313，这是什么意思呢？
+ * 其实，DiskLruCache会在每一行CLEAN记录的最后加上该条缓存数据的大小，以字节为单位。
+ * &lt;p/&gt;
+ * 执行步骤：
+ * 1.根据第一个空格解析字符串获取命令标识：CRUD
+ * 2.获取第二个空格索引，如果不存在第二个空格获取缓存的key，并且命令标识为D，就删除缓存实体函数返回。
+ * 如果存在第二个空格，得到缓存文件的key
+ * 3.根据key获取缓存的实体，如果不存在就创建。
+ * 4.根据命令标识符执行操作。
+ * 对于CLEAN格式：C <span class="doctag"><span class="keyword">XXX</span></span><span class="doctag"><span class="keyword">XXX</span></span> txxxx 123000，首先判断是否有过期前缀，如果存在保存过期时间不存在设置为最大值。接着保存缓存文件大小。
+ * 对于UDPATE：获取Editor对象。
+ */</span>
+<span class="keyword">private</span> <span class="keyword">void</span> readJournalLine(<span class="keyword">String</span> <span class="built_in">line</span>) <span class="keyword">throws</span> IOException {
+    <span class="built_in">int</span> firstSpace = <span class="built_in">line</span>.indexOf(<span class="string">' '</span>);
+    <span class="built_in">char</span> lineTag = <span class="number">0</span>;
+    <span class="keyword">if</span> (firstSpace == <span class="number">1</span>) {<span class="comment">//命令标识</span>
+        lineTag = <span class="built_in">line</span>.charAt(<span class="number">0</span>);
+    } <span class="keyword">else</span> {
+        <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"unexpected journal line: "</span> + <span class="built_in">line</span>);
+    }
+
+    <span class="built_in">int</span> keyBegin = firstSpace + <span class="number">1</span>;
+    <span class="built_in">int</span> secondSpace = <span class="built_in">line</span>.indexOf(<span class="string">' '</span>, keyBegin);<span class="comment">//第二个空格索引</span>
+    <span class="keyword">final</span> <span class="keyword">String</span> diskKey;
+    <span class="keyword">if</span> (secondSpace == -<span class="number">1</span>) {<span class="comment">//不存在第二个空格</span>
+        diskKey = <span class="built_in">line</span>.substring(keyBegin);<span class="comment">//获取缓存文件的key</span>
+        <span class="keyword">if</span> (lineTag == DELETE) {<span class="comment">//删除指令</span>
+            lruEntries.remove(diskKey);<span class="comment">//移除这个key</span>
+            <span class="keyword">return</span>;
+        }
+    } <span class="keyword">else</span> {<span class="comment">//存在第二个空格</span>
+        diskKey = <span class="built_in">line</span>.substring(keyBegin, secondSpace);<span class="comment">//获取缓存文件的key</span>
+    }
+
+    Entry entry = lruEntries.<span class="built_in">get</span>(diskKey);<span class="comment">//缓存实体</span>
+    <span class="keyword">if</span> (entry == <span class="keyword">null</span>) {
+        entry = <span class="keyword">new</span> Entry(diskKey);
+        lruEntries.put(diskKey, entry);
+    }
+
+    <span class="keyword">switch</span> (lineTag) {
+        <span class="keyword">case</span> CLEAN: {
+            entry.readable = <span class="keyword">true</span>;
+            entry.currentEditor = <span class="keyword">null</span>;
+            <span class="keyword">String</span>[] parts = <span class="built_in">line</span>.substring(secondSpace + <span class="number">1</span>).<span class="built_in">split</span>(<span class="string">" "</span>);
+            <span class="keyword">if</span> (parts.length &gt; <span class="number">0</span>) {
+                <span class="keyword">try</span> {
+                    <span class="keyword">if</span> (parts[<span class="number">0</span>].charAt(<span class="number">0</span>) == EXPIRY_PREFIX) {<span class="comment">//过期前缀</span>
+                        entry.expiryTimestamp = Long.valueOf(parts[<span class="number">0</span>].substring(<span class="number">1</span>));
+                        entry.setLengths(parts, <span class="number">1</span>);<span class="comment">//设置缓存文件的大小</span>
+                    } <span class="keyword">else</span> {<span class="comment">//不存在过期前缀</span>
+                        entry.expiryTimestamp = Long.MAX_VALUE;
+                        entry.setLengths(parts, <span class="number">0</span>);<span class="comment">//设置缓存文件的大小</span>
+                    }
+                } <span class="keyword">catch</span> (Throwable e) {
+                    <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"unexpected journal line: "</span> + <span class="built_in">line</span>);
+                }
+            }
+            <span class="keyword">break</span>;
+        }
+        <span class="keyword">case</span> UPDATE: {
+            entry.currentEditor = <span class="keyword">new</span> Editor(entry);
+            <span class="keyword">break</span>;
+        }
+        <span class="keyword">case</span> READ: {
+            <span class="comment">// This work was already done by calling lruEntries.get().</span>
+            <span class="keyword">break</span>;
+        }
+        <span class="keyword">default</span>: {
+            <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"unexpected journal line: "</span> + <span class="built_in">line</span>);
+        }
+    }
+}
+</code></pre><h5 id="1-1-1-2-1-2_计算总大小_cache-processJournal();">1.1.1.2.1.2 计算总大小  cache.processJournal();</h5><pre><code><span class="comment">/**
+ * Computes the initial size and collects garbage as a part of opening the
+ * cache. Dirty entries are assumed to be inconsistent and will be deleted.
+ * 执行步骤：
+ * 1.删除日志临时文件
+ * 2.迭代实体，如果不是update直接累加计算缓存文件总大小，是update删除实体对应的dirty及clean文件。
+ */</span>
+private void processJournal<span class="params">()</span> throws IOException {
+    deleteIfExists<span class="params">(journalFileTmp)</span>;<span class="comment">//删除日志临时文件</span>
+    <span class="keyword">for</span> <span class="params">(Iterator&lt;Entry&gt; i = lruEntries.values<span class="params">()</span>.iterator<span class="params">()</span>; i.hasNext<span class="params">()</span>; )</span> {
+        Entry entry = i.next<span class="params">()</span>;
+        <span class="keyword">if</span> <span class="params">(entry.currentEditor == null)</span> {
+            <span class="keyword">for</span> <span class="params">(int t = <span class="number">0</span>; t &lt; valueCount; t++)</span> {
+                size += entry.lengths[t];<span class="comment">//累计计算缓存文件总大小</span>
+            }
+        } <span class="keyword">else</span> {<span class="comment">//update状态删除实体的Dirty和Clean文件    ？</span>
+            entry.currentEditor = null;
+            <span class="keyword">for</span> <span class="params">(int t = <span class="number">0</span>; t &lt; valueCount; t++)</span> {
+                deleteIfExists<span class="params">(entry.getCleanFile<span class="params">(t)</span>)</span>;
+                deleteIfExists<span class="params">(entry.getDirtyFile<span class="params">(t)</span>)</span>;
+            }
+            i.remove<span class="params">()</span>;
+        }
+    }
+}
+</code></pre><h2 id="2-显示图片，_mBitmapUtils-display(mRecyclerViewHolder-mArticleImage,_article-getPhotoURL());">2.显示图片， mBitmapUtils.display(mRecyclerViewHolder.mArticleImage, article.getPhotoURL());</h2><pre><code>public &lt;T extends View&gt; void display<span class="params">(T container, String uri)</span> {
+    display<span class="params">(container, uri, null, null)</span>;
+}
+
+public &lt;T extends View&gt; void display<span class="params">(T container, String uri, BitmapDisplayConfig
+        displayConfig)</span> {
+    display<span class="params">(container, uri, displayConfig, null)</span>;
+}
+
+public &lt;T extends View&gt; void display<span class="params">(T container, String uri, BitmapLoadCallBack&lt;T&gt; callBack)</span> {
+    display<span class="params">(container, uri, null, callBack)</span>;
+}
+
+ <span class="comment">/**
+ * 1.设置加载回调，设置展示配置BitmapDisplayConfig，设置Bitmap大小参数
+ * 2.先从内存中获取Bitmap，如果存在设置回调状态
+ * 3.内存中不存在，检查如果加载Bitmap任务不存在，新建BitmapLoadTask对象获得PriorityExecutor线程池加载器
+ * 4.从磁盘获取缓存文件，缓存存在并且线程池加载器正在忙，切换磁盘缓存加载器
+ * 5.获得配置正在加载Drawable对象封装添加对应Task的AsyncDrawable对象
+ * 6.回调接口设置该AsyncDrawable对象
+ * 7.传入线程池加载器执行BitmapLoadTask对象
+ */</span>
+public &lt;T extends View&gt; void display<span class="params">(T container, String uri, BitmapDisplayConfig
+        displayConfig, BitmapLoadCallBack&lt;T&gt; callBack)</span> {
+    <span class="keyword">if</span> <span class="params">(container == null)</span> {
+        return;
+    }
+
+    <span class="keyword">if</span> <span class="params">(callBack == null)</span> {
+        callBack = new DefaultBitmapLoadCallBack&lt;T&gt;<span class="params">()</span>;<span class="comment">//默认图片加载回调</span>
+    }
+
+    <span class="keyword">if</span> <span class="params">(displayConfig == null || displayConfig == defaultDisplayConfig)</span> {
+        displayConfig = defaultDisplayConfig.cloneNew<span class="params">()</span>;
+    }
+
+    <span class="comment">// Optimize Max Size</span>
+    BitmapSize size = displayConfig.getBitmapMaxSize<span class="params">()</span>;
+    displayConfig.setBitmapMaxSize<span class="params">(BitmapCommonUtils.optimizeMaxSizeByView<span class="params">(container, size
+            .getWidth<span class="params">()</span>, size.getHeight<span class="params">()</span>)</span>)</span>;<span class="comment">//设置Bitmap显示的最大值</span>
+
+    container.clearAnimation<span class="params">()</span>;<span class="comment">//清除动画</span>
+
+    <span class="keyword">if</span> <span class="params">(TextUtils.isEmpty<span class="params">(uri)</span>)</span> {<span class="comment">//下载地址为空，回调失败返回</span>
+        callBack.onLoadFailed<span class="params">(container, uri, displayConfig.getLoadFailedDrawable<span class="params">()</span>)</span>;
+        return;
+    }
+
+    <span class="comment">// start loading</span>
+    callBack.onPreLoad<span class="params">(container, uri, displayConfig)</span>;
+
+    <span class="comment">// find bitmap from mem cache.先从内存中获取Bitmap</span>
+    Bitmap bitmap = globalConfig.getBitmapCache<span class="params">()</span>.getBitmapFromMemCache<span class="params">(uri, displayConfig)</span>;
+
+    <span class="keyword">if</span> <span class="params">(bitmap != null)</span> {<span class="comment">//内存中存在Bitmap，设置回调状态结果</span>
+        callBack.onLoadStarted<span class="params">(container, uri, displayConfig)</span>;
+        callBack.onLoadCompleted<span class="params">(container, uri, bitmap, displayConfig, BitmapLoadFrom
+                .MEMORY_CACHE)</span>;
+    } <span class="keyword">else</span> <span class="keyword">if</span> <span class="params">(!bitmapLoadTaskExist<span class="params">(container, uri, callBack)</span>)</span> {<span class="comment">//bitmap加载任务不存在</span>
+
+        final BitmapLoadTask&lt;T&gt; loadTask = new BitmapLoadTask&lt;T&gt;<span class="params">(container, uri,
+                displayConfig, callBack)</span>;<span class="comment">//新建下载任务</span>
+
+        <span class="comment">// get executor  获得加载执行器</span>
+        PriorityExecutor executor = globalConfig.getBitmapLoadExecutor<span class="params">()</span>;
+        File diskCacheFile = this.getBitmapFileFromDiskCache<span class="params">(uri)</span>;<span class="comment">//从磁盘中获取缓存</span>
+        boolean diskCacheExist = diskCacheFile <span class="built_in">!</span>= null &amp;&amp; diskCacheFile.exists<span class="params">()</span>;
+        <span class="keyword">if</span> <span class="params">(diskCacheExist &amp;&amp; executor.isBusy<span class="params">()</span>)</span> {<span class="comment">//文件存在，并且Bitmap加载线程池忙</span>
+            executor = globalConfig.getDiskCacheExecutor<span class="params">()</span>;<span class="comment">//获取磁盘缓存处理线程池执行器</span>
+        }
+        <span class="comment">// set loading image</span>
+        Drawable loadingDrawable = displayConfig.getLoadingDrawable<span class="params">()</span>;<span class="comment">//设置正在加载显示的图片</span>
+        callBack.setDrawable<span class="params">(container, new AsyncDrawable&lt;T&gt;<span class="params">(loadingDrawable, loadTask)</span>)</span>;
+        loadTask.setPriority<span class="params">(displayConfig.getPriority<span class="params">()</span>)</span>;
+        loadTask.executeOnExecutor<span class="params">(executor)</span>;
+    }
+}
+</code></pre><h3 id="2-1_设置Bitmap显示的最大值displayConfig-setBitmapMaxSize(BitmapCommonUtils-optimizeMaxSizeByView(container,_size-getWidth(),_size-getHeight()));">2.1 设置Bitmap显示的最大值displayConfig.setBitmapMaxSize(BitmapCommonUtils.optimizeMaxSizeByView(container, size.getWidth(), size.getHeight()));</h3><pre><code> <span class="comment">/**
+ * BitmapCommonUtils.java
+ * 设置Bitmap大小返回BitmapSize。
+ * 1.如果用户设置了最大最小值，直接构造返回BitmapSize对象。
+ * 2.获取View的Layout参数设置大小
+ * 3.如果上述得到值小于0，反射获取ImageView的“mMaxWidth”“mMaxHeight”值
+ * 4.如果上述得到值小于0，获取窗口大小，并进行设置。
+ * */</span>
+<span class="keyword">public</span> <span class="keyword">static</span> BitmapSize optimizeMaxSizeByView(View view, <span class="built_in">int</span> maxImageWidth,
+                                               <span class="built_in">int</span> maxImageHeight) {
+    <span class="built_in">int</span> <span class="variable">width</span> = maxImageWidth;
+    <span class="built_in">int</span> <span class="variable">height</span> = maxImageHeight;
+
+    <span class="keyword">if</span> (<span class="variable">width</span> &gt; <span class="number">0</span> &amp;&amp; <span class="variable">height</span> &gt; <span class="number">0</span>) {
+        <span class="keyword">return</span> <span class="keyword">new</span> BitmapSize(<span class="variable">width</span>, <span class="variable">height</span>);
+    }
+
+    <span class="keyword">final</span> ViewGroup.LayoutParams params = view.getLayoutParams();
+    <span class="keyword">if</span> (params != <span class="keyword">null</span>) {<span class="comment">//根据父容器参数设置View显示大小</span>
+        <span class="keyword">if</span> (params.<span class="variable">width</span> &gt; <span class="number">0</span>) {
+            <span class="variable">width</span> = params.<span class="variable">width</span>;
+        } <span class="keyword">else</span> <span class="keyword">if</span> (params.<span class="variable">width</span> != ViewGroup.LayoutParams.WRAP_CONTENT) {
+            <span class="variable">width</span> = view.getWidth();
+        }
+
+        <span class="keyword">if</span> (params.<span class="variable">height</span> &gt; <span class="number">0</span>) {
+            <span class="variable">height</span> = params.<span class="variable">height</span>;
+        } <span class="keyword">else</span> <span class="keyword">if</span> (params.<span class="variable">height</span> != ViewGroup.LayoutParams.WRAP_CONTENT) {
+            <span class="variable">height</span> = view.getHeight();
+        }
+    }
+
+    <span class="keyword">if</span> (<span class="variable">width</span> &lt;= <span class="number">0</span>) <span class="variable">width</span> = getImageViewFieldValue(view, <span class="string">"mMaxWidth"</span>);<span class="comment">//根据ImageView声明字段获取大小</span>
+    <span class="keyword">if</span> (<span class="variable">height</span> &lt;= <span class="number">0</span>) <span class="variable">height</span> = getImageViewFieldValue(view, <span class="string">"mMaxHeight"</span>);
+
+    BitmapSize screenSize = getScreenSize(view.getContext());
+    <span class="keyword">if</span> (<span class="variable">width</span> &lt;= <span class="number">0</span>) <span class="variable">width</span> = screenSize.getWidth();<span class="comment">//根据窗口大小设置大小</span>
+    <span class="keyword">if</span> (<span class="variable">height</span> &lt;= <span class="number">0</span>) <span class="variable">height</span> = screenSize.getHeight();
+
+    <span class="keyword">return</span> <span class="keyword">new</span> BitmapSize(<span class="variable">width</span>, <span class="variable">height</span>);
+}
+
+  <span class="comment">/**
+ * 获得ImageView声明的mMaxWidth，mMaxHeight字段数值
+ */</span>
+<span class="keyword">private</span> <span class="keyword">static</span> <span class="built_in">int</span> getImageViewFieldValue(<span class="keyword">Object</span> object, <span class="keyword">String</span> fieldName) {
+    <span class="built_in">int</span> value = <span class="number">0</span>;
+    <span class="keyword">if</span> (object <span class="keyword">instanceof</span> ImageView) {
+        <span class="keyword">try</span> {
+            Field field = ImageView.class.getDeclaredField(fieldName);
+            field.setAccessible(<span class="keyword">true</span>);
+            <span class="built_in">int</span> fieldValue = (Integer) field.<span class="built_in">get</span>(object);
+            <span class="keyword">if</span> (fieldValue &gt; <span class="number">0</span> &amp;&amp; fieldValue &lt; Integer.MAX_VALUE) {<span class="comment">//不是默认值</span>
+                value = fieldValue;
+            }
+        } <span class="keyword">catch</span> (Throwable e) {
+        }
+    }
+    <span class="keyword">return</span> value;
+}
+</code></pre><h3 id="2-2_从内存缓存中获取Bitmap，globalConfig-getBitmapCache()-getBitmapFromMemCache(uri,_displayConfig);">2.2 从内存缓存中获取Bitmap，globalConfig.getBitmapCache().getBitmapFromMemCache(uri, displayConfig);</h3><pre><code><span class="keyword">public</span> <span class="function">BitmapCache <span class="title">getBitmapCache</span><span class="params">()</span> </span>{
+    <span class="keyword">if</span> (bitmapCache == <span class="keyword">null</span>) {
+        bitmapCache = <span class="keyword">new</span> BitmapCache(<span class="keyword">this</span>);
+    }
+    <span class="keyword">return</span> bitmapCache;
+}
+
+ <span class="comment">/**
+ * Get the bitmap from memory cache.
+ *
+ * <span class="doctag">@param</span> uri    Unique identifier for which item to get
+ * <span class="doctag">@param</span> config
+ * <span class="doctag">@return</span> The bitmap if found in cache, null otherwise
+ * 从内存缓存中查找是否存在Bitmap
+ */</span>
+<span class="keyword">public</span> <span class="function">Bitmap <span class="title">getBitmapFromMemCache</span><span class="params">(String uri, BitmapDisplayConfig config)</span> </span>{
+    <span class="keyword">if</span> (mMemoryCache != <span class="keyword">null</span> &amp;&amp; globalConfig.isMemoryCacheEnabled()) {
+        MemoryCacheKey key = <span class="keyword">new</span> MemoryCacheKey(uri, config);
+        <span class="function"><span class="keyword">return</span> mMemoryCache.<span class="title">get</span><span class="params">(key)</span></span>;
+    }
+    <span class="keyword">return</span> <span class="keyword">null</span>;
+}
+</code></pre><h3 id="2-3_判断Bitmap加载任务是否存在，bitmapLoadTaskExist(container,_uri,_callBack)">2.3 判断Bitmap加载任务是否存在，bitmapLoadTaskExist(container, uri, callBack)</h3><pre><code> <span class="comment">/**
+ * 判断当前bitmap加载任务是否已经存在
+ * 1.传入container，获得Drawable对象强制转换判断时候存在下载任务
+ * 2.如果存在下载任务，在判断该任务与最新任务差异，存在就取消已存在任务
+ * 3.不存在就返回false
+ */</span>
+<span class="keyword">private</span> <span class="keyword">static</span> &lt;T extends View&gt; <span class="keyword">boolean</span> bitmapLoadTaskExist(T <span class="keyword">container</span>, String uri,
+                                                            BitmapLoadCallBack&lt;T&gt; callBack) {
+    <span class="keyword">final</span> BitmapLoadTask&lt;T&gt; oldLoadTask = getBitmapTaskFromContainer(<span class="keyword">container</span>, callBack);
+
+    <span class="keyword">if</span> (oldLoadTask != <span class="keyword">null</span>) {
+        <span class="keyword">final</span> String oldUrl = oldLoadTask.uri;
+        <span class="keyword">if</span> (TextUtils.isEmpty(oldUrl) || !oldUrl.equals(uri)) {
+            oldLoadTask.cancel(<span class="keyword">true</span>);<span class="comment">//取消旧的下载任务</span>
+        } <span class="keyword">else</span> {
+            <span class="keyword">return</span> <span class="keyword">true</span>;
+        }
+    }
+    <span class="keyword">return</span> <span class="keyword">false</span>;
+}
+
+ <span class="keyword">private</span> <span class="keyword">static</span> &lt;T extends View&gt; BitmapLoadTask&lt;T&gt; getBitmapTaskFromContainer(T <span class="keyword">container</span>,
+                                                                             BitmapLoadCallBack&lt;T&gt; callBack) {
+    <span class="keyword">if</span> (<span class="keyword">container</span> != <span class="keyword">null</span>) {
+        <span class="keyword">final</span> Drawable drawable = callBack.getDrawable(<span class="keyword">container</span>);
+        <span class="keyword">if</span> (drawable instanceof AsyncDrawable) {<span class="comment">//获取BitmapTask对象</span>
+            <span class="keyword">final</span> AsyncDrawable&lt;T&gt; asyncDrawable = (AsyncDrawable&lt;T&gt;) drawable;
+            <span class="keyword">return</span> asyncDrawable.getBitmapWorkerTask();
+        }
+    }
+    <span class="keyword">return</span> <span class="keyword">null</span>;
+}
+</code></pre><h3 id="2-4_bitmap加载任务不存在，从磁盘中获取缓存_this-getBitmapFileFromDiskCache(uri);">2.4 bitmap加载任务不存在，从磁盘中获取缓存 this.getBitmapFileFromDiskCache(uri);</h3><pre><code>public <span class="type">File</span> getBitmapFileFromDiskCache(<span class="type">String</span> uri) {
+    <span class="keyword">return</span> globalConfig.getBitmapCache().getBitmapFileFromDiskCache(uri);
+}
+
+/**
+ * <span class="type">Get</span> the bitmap file <span class="keyword">from</span> disk cache.
+ *
+ * @param uri <span class="type">Unique</span> identifier <span class="keyword">for</span> which item to get
+ * @<span class="keyword">return</span> <span class="type">The</span> file <span class="keyword">if</span> found <span class="keyword">in</span> cache.
+ */
+public <span class="type">File</span> getBitmapFileFromDiskCache(<span class="type">String</span> uri) {
+    synchronized (mDiskCacheLock) {
+        <span class="keyword">if</span> (mDiskLruCache != null) {
+            <span class="keyword">return</span> mDiskLruCache.getCacheFile(uri, <span class="type">DISK_CACHE_INDEX</span>);
+        } <span class="keyword">else</span> {
+            <span class="keyword">return</span> null;
+        }
+    }
+}
+
+/**<span class="type">LruDiskCache</span>.java
+ * 获取缓存文件
+ */
+public <span class="type">File</span> getCacheFile(<span class="type">String</span> key, <span class="type">int</span> index) {
+    <span class="type">String</span> diskKey = fileNameGenerator.generate(key);//生成key
+    <span class="type">File</span> <span class="literal">result</span> = new <span class="type">File</span>(this.directory, diskKey + <span class="string">"."</span> + index);
+    <span class="keyword">if</span> (<span class="literal">result</span>.exists()) {
+        <span class="keyword">return</span> <span class="literal">result</span>;
+    } <span class="keyword">else</span> {
+        <span class="keyword">try</span> {
+            this.remove(key);
+        } catch (<span class="type">IOException</span> ignore) {
+        }
+        <span class="keyword">return</span> null;
+    }
+}
+</code></pre><h3 id="2-5执行Btimap加载人任务loadTask-executeOnExecutor(executor);">2.5执行Btimap加载人任务loadTask.executeOnExecutor(executor);</h3><pre><code><span class="comment">/**
+ * BitmapLoadTask.java
+ * 后台线程执行
+ * 1.死循环判断暂定状态，并阻塞线程
+ * 2.发布状态，从磁盘缓存中获取Birmap
+ * 3.磁盘缓存中不存在去下载
+ */</span>
+@<span class="function">Override
+<span class="keyword">protected</span> Bitmap <span class="title">doInBackground</span>(<span class="params">Object... <span class="keyword">params</span></span>) </span>{
+    synchronized (pauseTaskLock) {
+        <span class="keyword">while</span> (pauseTask &amp;&amp; !<span class="keyword">this</span>.isCancelled()) {
+            <span class="keyword">try</span> {
+                pauseTaskLock.wait();<span class="comment">//线程阻塞</span>
+                <span class="keyword">if</span> (cancelAllTask) {
+                    <span class="keyword">return</span> <span class="keyword">null</span>;
+                }
+            } <span class="keyword">catch</span> (Throwable e) {
+            }
+        }
+    }
+    Bitmap bitmap = <span class="keyword">null</span>;
+    <span class="comment">// get cache from disk cache</span>
+    <span class="keyword">if</span> (!<span class="keyword">this</span>.isCancelled() &amp;&amp; <span class="keyword">this</span>.getTargetContainer() != <span class="keyword">null</span>) {
+        <span class="keyword">this</span>.publishProgress(PROGRESS_LOAD_STARTED);
+        bitmap = globalConfig.getBitmapCache().getBitmapFromDiskCache(uri, displayConfig);
+    }
+    <span class="comment">// download image</span>
+    <span class="keyword">if</span> (bitmap == <span class="keyword">null</span> &amp;&amp; !<span class="keyword">this</span>.isCancelled() &amp;&amp; <span class="keyword">this</span>.getTargetContainer() != <span class="keyword">null</span>)
+    {<span class="comment">//磁盘缓存不存在,去下载</span>
+        bitmap = globalConfig.getBitmapCache().downloadBitmap(uri, displayConfig, <span class="keyword">this</span>);
+        <span class="keyword">from</span> = BitmapLoadFrom.URI;
+    }
+    <span class="keyword">return</span> bitmap;
+}
+</code></pre><h4 id="2-5-1_获取磁盘缓存的Bitmap，globalConfig-getBitmapCache()-getBitmapFromDiskCache(uri,_displayConfig);">2.5.1 获取磁盘缓存的Bitmap，globalConfig.getBitmapCache().getBitmapFromDiskCache(uri, displayConfig);</h4><pre><code> <span class="comment">/**
+ * Get the bitmap from disk cache.
+ * @param uri
+ * @param config
+ * @return
+ * BitmapCache.java
+ * 从磁盘缓存中获取Bitmap
+ * 1.检查LruDiskCache是否存在，初始化LruDiskCache对象
+ * 2.根据传入url获取磁盘缓存处理Snapshot对象，如果为null即不存在缓存，直接返回null
+ * 3.判断配置是否为空或者显示原图，如果是，直接根据输入流构造Bitmap。否则根据传入配置压缩Bitmap
+ * 4.根据需要处理Bitmap旋转
+ * 5.将Bitmap添加到内存缓存中，返回Bitmap
+ */</span>
+public Bitmap getBitmapFromDiskCache<span class="params">(String uri, BitmapDisplayConfig config)</span> {
+    <span class="keyword">if</span> <span class="params">(uri == null || !globalConfig.isDiskCacheEnabled<span class="params">()</span>)</span> return null;
+    <span class="keyword">if</span> <span class="params">(mDiskLruCache == null)</span> {
+        initDiskCache<span class="params">()</span>;
+    }
+    <span class="keyword">if</span> <span class="params">(mDiskLruCache != null)</span> {
+        LruDiskCache.Snapshot snapshot = null;
+        try {
+            snapshot = mDiskLruCache.get<span class="params">(uri)</span>;
+            <span class="keyword">if</span> <span class="params">(snapshot != null)</span> {
+                Bitmap bitmap = null;
+                <span class="keyword">if</span> <span class="params">(config == null || config.isShowOriginal<span class="params">()</span>)</span> {<span class="comment">//显示原图</span>
+                    bitmap = BitmapDecoder.decodeFileDescriptor<span class="params">(snapshot.getInputStream
+                            <span class="params">(DISK_CACHE_INDEX)</span>.getFD<span class="params">()</span>)</span>;
+                } <span class="keyword">else</span> {<span class="comment">//图片压缩</span>
+                    bitmap = BitmapDecoder.decodeSampledBitmapFromDescriptor<span class="params">(snapshot
+                            .getInputStream<span class="params">(DISK_CACHE_INDEX)</span>.getFD<span class="params">()</span>, config
+                            .getBitmapMaxSize<span class="params">()</span>, config.getBitmapConfig<span class="params">()</span>)</span>;
+                }
+                bitmap = rotateBitmapIfNeeded<span class="params">(uri, config, bitmap)</span>;<span class="comment">//图片旋转</span>
+                bitmap = addBitmapToMemoryCache<span class="params">(uri, config, bitmap, mDiskLruCache
+                        .getExpiryTimestamp<span class="params">(uri)</span>)</span>;
+                return bitmap;
+            }
+        } catch <span class="params">(Throwable e)</span> {
+            LogUtils.e<span class="params">(e.getMessage<span class="params">()</span>, e)</span>;
+        } finally {
+            IOUtils.closeQuietly<span class="params">(snapshot)</span>;
+        }
+    }
+    return null;
+}
+</code></pre><h5 id="2-5-1-1_获取snapshot_=_mDiskLruCache-get(uri);">2.5.1.1 获取snapshot = mDiskLruCache.get(uri);</h5><pre><code><span class="keyword">public</span> Snapshot get(String key) <span class="keyword">throws</span> IOException {
+    String diskKey = fileNameGenerator.generate(key);
+    <span class="keyword">return</span> getByDiskKey(diskKey);
+}
+
+<span class="comment">/**
+ * Returns a snapshot of the entry named {@code diskKey}, or null if it doesn't
+ * exist is not currently readable. If a value is returned, it is moved to
+ * the head of the LRU queue.
+ * 1.根据key获取对应Entry对象，检查是否时间过期，如果过期就删除该Entry对象内的所有缓存文件，删除过期对象检查是否需要重构日志文件，最后返回null
+ * 2.列举该Entry对象对应所有缓存文件的输入流，如果遇到不存在的文件异常关闭输入流返回null
+ * 3.再次检查是否重构日志，同时新建Snapshot对象返回
+ */</span>
+<span class="keyword">private</span> <span class="keyword">synchronized</span> Snapshot getByDiskKey(String diskKey) <span class="keyword">throws</span> IOException {
+    checkNotClosed();
+    Entry entry = lruEntries.get(diskKey);
+    <span class="keyword">if</span> (entry == <span class="keyword">null</span>) {
+        <span class="keyword">return</span> <span class="keyword">null</span>;
+    }
+    <span class="keyword">if</span> (!entry.readable) {
+        <span class="keyword">return</span> <span class="keyword">null</span>;
+    }
+
+    <span class="comment">// If expired, delete the entry.</span>
+    <span class="keyword">if</span> (entry.expiryTimestamp &lt; System.currentTimeMillis()) {<span class="comment">//删除过期</span>
+        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; valueCount; i++) {
+            <span class="keyword">File</span> <span class="keyword">file</span> = entry.getCleanFile(i);
+            <span class="keyword">if</span> (<span class="keyword">file</span>.exists() &amp;&amp; !<span class="keyword">file</span>.<span class="keyword">delete</span>()) {
+                <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"failed to delete "</span> + <span class="keyword">file</span>);
+            }
+            <span class="keyword">size</span> -= entry.lengths[i];
+            entry.lengths[i] = <span class="number">0</span>;
+        }
+        redundantOpCount++;
+        journalWriter.<span class="keyword">append</span>(<span class="keyword">DELETE</span> + <span class="string">" "</span> + diskKey + <span class="string">'\n'</span>);<span class="comment">//添加删除记录</span>
+        lruEntries.remove(diskKey);
+        <span class="keyword">if</span> (journalRebuildRequired()) {<span class="comment">//重构日志文件</span>
+            executorService.submit(cleanupCallable);
+        }
+        <span class="keyword">return</span> <span class="keyword">null</span>;
+    }
+    <span class="comment">// Open all streams eagerly to guarantee that we see a single published</span>
+    <span class="comment">// snapshot. If we opened streams lazily then the streams could come</span>
+    <span class="comment">// from different edits.</span>
+    <span class="comment">//列举该key对应的所有输入流，对不存在</span>
+    FileInputStream[] ins = <span class="keyword">new</span> FileInputStream[valueCount];
+    <span class="keyword">try</span> {
+        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; valueCount; i++) {
+            ins[i] = <span class="keyword">new</span> FileInputStream(entry.getCleanFile(i));
+        }
+    } <span class="keyword">catch</span> (FileNotFoundException e) {
+        <span class="comment">// A file must have been deleted manually!</span>
+        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; valueCount; i++) {
+            <span class="keyword">if</span> (ins[i] != <span class="keyword">null</span>) {
+                IOUtils.closeQuietly(ins[i]);
+            } <span class="keyword">else</span> {
+                <span class="keyword">break</span>;
+            }
+        }
+        <span class="keyword">return</span> <span class="keyword">null</span>;
+    }
+    journalWriter.<span class="keyword">append</span>(<span class="keyword">READ</span> + <span class="string">" "</span> + diskKey + <span class="string">'\n'</span>);<span class="comment">//添加读取记录</span>
+    <span class="keyword">if</span> (journalRebuildRequired()) {
+        executorService.submit(cleanupCallable);
+    }
+</code></pre><h5 id="2-5-1-2_构造原图bitmap_=_BitmapDecoder-decodeFileDescriptor(snapshot-getInputStream(DISK_CACHE_INDEX)-getFD());">2.5.1.2  构造原图bitmap = BitmapDecoder.decodeFileDescriptor(snapshot.getInputStream(DISK_CACHE_INDEX).getFD());</h5><pre><code> /<span class="keyword">*</span><span class="keyword">*</span><span class="keyword">*</span>
+ <span class="keyword">*</span> BitmapFactory.Options.inPurgeable;
+ <span class="keyword">*</span> BitmapDecoder.java
+ <span class="keyword">*</span> <span class="variable">&lt;p/&gt;</span>
+ <span class="keyword">*</span> 如果 inPurgeable 设为True的话表示使用BitmapFactory创建的Bitmap
+ <span class="keyword">*</span> 用于存储Pixel的内存空间在系统内存不足时可以被回收，
+ <span class="keyword">*</span> 在应用需要再次访问Bitmap的Pixel时（如绘制Bitmap或是调用getPixel），
+ <span class="keyword">*</span> 系统会再次调用BitmapFactory decoder重新生成Bitmap的Pixel数组。
+ <span class="keyword">*</span> 为了能够重新解码图像，bitmap要能够访问存储Bitmap的原始数据。
+ <span class="keyword">*</span> <span class="variable">&lt;p/&gt;</span>
+ <span class="keyword">*</span> 在inPurgeable为false时表示创建的Bitmap的Pixel内存空间不能被回收，
+ <span class="keyword">*</span> 这样BitmapFactory在不停decodeByteArray创建新的Bitmap对象，
+ <span class="keyword">*</span> 不同设备的内存不同，因此能够同时创建的Bitmap个数可能有所不同，
+ <span class="keyword">*</span> 200个bitmap足以使大部分的设备重新OutOfMemory错误。
+ <span class="keyword">*</span> 当isPurgable设为true时，系统中内存不足时，
+ <span class="keyword">*</span> 可以回收部分Bitmap占据的内存空间，这时一般不会出现OutOfMemory 错误。
+ <span class="keyword">*</span>/
+public static Bitmap decodeFileDescriptor(FileDescriptor fileDescriptor) {
+    synchronized (lock) {
+        final BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inPurgeable = true;
+        options.inInputShareable = true; // 与inPurgeable 一起使用
+        try {
+            return BitmapFactory.decodeFileDescriptor(fileDescriptor, null, options);
+        } catch (Throwable e) {
+            LogUtils.e(e.getMessage(), e);
+            return null;
+        }
+    }
+}
+</code></pre><h5 id="2-5-1-3_构造缩放bitmap_=_BitmapDecoder-decodeSampledBitmapFromDescriptor(snapshot-getInputStream(DISK_CACHE_INDEX)-getFD(),_config-getBitmapMaxSize(),_config-getBitmapConfig());">2.5.1.3 构造缩放bitmap = BitmapDecoder.decodeSampledBitmapFromDescriptor(snapshot.getInputStream(DISK_CACHE_INDEX).getFD(), config.getBitmapMaxSize(), config.getBitmapConfig());</h5><pre><code><span class="keyword">public</span> <span class="keyword">static</span> Bitmap decodeSampledBitmapFromDescriptor(FileDescriptor fileDescriptor,
+                                                       BitmapSize maxSize, Bitmap.Config
+                                                               config) {
+    <span class="keyword">synchronized</span> (lock) {
+        <span class="keyword">final</span> BitmapFactory.Options options = <span class="keyword">new</span> BitmapFactory.Options();
+        options.inJustDecodeBounds = <span class="keyword">true</span>;<span class="comment">//只是获取Bitmap参数</span>
+        options.inPurgeable = <span class="keyword">true</span>;
+        options.inInputShareable = <span class="keyword">true</span>;
+        BitmapFactory.decodeFileDescriptor(fileDescriptor, <span class="keyword">null</span>, options);
+        options.inSampleSize = calculateInSampleSize(options, maxSize.getWidth(), maxSize
+                .getHeight());
+        options.inJustDecodeBounds = <span class="keyword">false</span>;
+        <span class="keyword">if</span> (config != <span class="keyword">null</span>) {
+            options.inPreferredConfig = config;
+        }
+        <span class="keyword">try</span> {
+            <span class="keyword">return</span> BitmapFactory.decodeFileDescriptor(fileDescriptor, <span class="keyword">null</span>, options);
+        } <span class="keyword">catch</span> (Throwable e) {
+            LogUtils.e(e.getMessage(), e);
+            <span class="keyword">return</span> <span class="keyword">null</span>;
+        }
+    }
+}
+
+ <span class="comment">/**
+ * BitmapDecoder.java
+ * 计算实际Bitmap尺寸
+ */</span>
+<span class="keyword">public</span> <span class="keyword">static</span> <span class="built_in">int</span> calculateInSampleSize(BitmapFactory.Options options, <span class="built_in">int</span> maxWidth, <span class="built_in">int</span>
+        maxHeight) {
+    <span class="keyword">final</span> <span class="built_in">int</span> <span class="variable">height</span> = options.outHeight;<span class="comment">//测量获得Bitmap尺寸</span>
+    <span class="keyword">final</span> <span class="built_in">int</span> <span class="variable">width</span> = options.outWidth;
+    <span class="built_in">int</span> inSampleSize = <span class="number">1</span>;
+    <span class="keyword">if</span> (<span class="variable">width</span> &gt; maxWidth || <span class="variable">height</span> &gt; maxHeight) {
+        <span class="keyword">if</span> (<span class="variable">width</span> &gt; <span class="variable">height</span>) {
+            inSampleSize = Math.<span class="built_in">round</span>((<span class="built_in">float</span>) <span class="variable">height</span> / (<span class="built_in">float</span>) maxHeight);<span class="comment">//四舍五入取整</span>
+        } <span class="keyword">else</span> {
+            inSampleSize = Math.<span class="built_in">round</span>((<span class="built_in">float</span>) <span class="variable">width</span> / (<span class="built_in">float</span>) maxWidth);
+        }
+
+        <span class="keyword">final</span> <span class="built_in">float</span> totalPixels = <span class="variable">width</span> * <span class="variable">height</span>;
+
+        <span class="keyword">final</span> <span class="built_in">float</span> maxTotalPixels = maxWidth * maxHeight * <span class="number">2</span>;
+
+        <span class="keyword">while</span> (totalPixels / (inSampleSize * inSampleSize) &gt; maxTotalPixels) {<span class="comment">//？</span>
+            inSampleSize++;
+        }
+    }
+    <span class="keyword">return</span> inSampleSize;
+}
+</code></pre><h5 id="2-5-1-4_处理图片旋转，bitmap_=_rotateBitmapIfNeeded(uri,_config,_bitmap);">2.5.1.4 处理图片旋转，bitmap = rotateBitmapIfNeeded(uri, config, bitmap);</h5><pre><code>/**
+ * <span class="number">1</span>.获取配置判断是否自动旋转
+ * <span class="number">2</span>.如果是，获取<span class="type">Bitmap</span>文件构造<span class="type">ExifInterface</span>对象，获取图片方向参数
+ * <span class="number">3</span>.如果方向不是<span class="number">0</span>，矫正<span class="type">Bitmap</span>方法返回
+ */
+private synchronized <span class="type">Bitmap</span> rotateBitmapIfNeeded(<span class="type">String</span> uri, <span class="type">BitmapDisplayConfig</span> config,
+                                                 <span class="type">Bitmap</span> bitmap) {
+    <span class="type">Bitmap</span> <span class="literal">result</span> = bitmap;
+    <span class="keyword">if</span> (config != null &amp;&amp; config.isAutoRotation()) {
+        <span class="type">File</span> bitmapFile = this.getBitmapFileFromDiskCache(uri);
+        <span class="keyword">if</span> (bitmapFile != null &amp;&amp; bitmapFile.exists()) {//获取缓存<span class="type">Bitmap</span>文件对象
+            <span class="type">ExifInterface</span> exif = null;//这个接口提供了图片文件的旋转，gps，时间等信息。
+            <span class="keyword">try</span> {
+                exif = new <span class="type">ExifInterface</span>(bitmapFile.getPath());
+            } catch (<span class="type">Throwable</span> e) {
+                <span class="keyword">return</span> <span class="literal">result</span>;
+            }
+            <span class="type">int</span> orientation = exif.getAttributeInt(<span class="type">ExifInterface</span>.<span class="type">TAG_ORIENTATION</span>,
+                    <span class="type">ExifInterface</span>.<span class="type">ORIENTATION_UNDEFINED</span>);//获取图片方向参数
+            <span class="type">int</span> angle = <span class="number">0</span>;
+            switch (orientation) {
+                <span class="keyword">case</span> <span class="type">ExifInterface</span>.<span class="type">ORIENTATION_ROTATE_90</span>:
+                    angle = <span class="number">90</span>;
+                    <span class="keyword">break</span>;
+                <span class="keyword">case</span> <span class="type">ExifInterface</span>.<span class="type">ORIENTATION_ROTATE_180</span>:
+                    angle = <span class="number">180</span>;
+                    <span class="keyword">break</span>;
+                <span class="keyword">case</span> <span class="type">ExifInterface</span>.<span class="type">ORIENTATION_ROTATE_270</span>:
+                    angle = <span class="number">270</span>;
+                    <span class="keyword">break</span>;
+                default:
+                    angle = <span class="number">0</span>;
+                    <span class="keyword">break</span>;
+            }
+            <span class="keyword">if</span> (angle != <span class="number">0</span>) {
+                <span class="type">Matrix</span> m = new <span class="type">Matrix</span>();
+                m.postRotate(angle);
+                <span class="literal">result</span> = <span class="type">Bitmap</span>.createBitmap(bitmap, <span class="number">0</span>, <span class="number">0</span>, bitmap.getWidth(), bitmap
+                        .getHeight(), m, <span class="literal">true</span>);//重新构造<span class="type">Bitmap</span>
+                bitmap.recycle();
+                bitmap = null;
+            }
+        }
+    }
+    <span class="keyword">return</span> <span class="literal">result</span>;
+}
+</code></pre><h5 id="2-5-1-5_将Bitmap添加到内存缓存中_bitmap_=_addBitmapToMemoryCache(uri,_config,_bitmap,_mDiskLruCache-getExpiryTimestamp(uri));">2.5.1.5 将Bitmap添加到内存缓存中 bitmap = addBitmapToMemoryCache(uri, config, bitmap, mDiskLruCache.getExpiryTimestamp(uri));</h5><pre><code><span class="comment">/**
+ * 将Bitmap添加到内存中
+ */</span>
+<span class="keyword">private</span> Bitmap addBitmapToMemoryCache(<span class="keyword">String</span> uri, BitmapDisplayConfig config, Bitmap bitmap,
+                                      <span class="keyword">long</span> expiryTimestamp) <span class="keyword">throws</span> IOException {
+    <span class="keyword">if</span> (config != <span class="keyword">null</span>) {
+        BitmapFactory bitmapFactory = config.getBitmapFactory();
+        <span class="keyword">if</span> (bitmapFactory != <span class="keyword">null</span>) {<span class="comment">//？</span>
+            bitmap = bitmapFactory.cloneNew().createBitmap(bitmap);
+        }
+    }
+    <span class="keyword">if</span> (uri != <span class="keyword">null</span> &amp;&amp; bitmap != <span class="keyword">null</span> &amp;&amp; globalConfig.isMemoryCacheEnabled() &amp;&amp; mMemoryCache
+            != <span class="keyword">null</span>) {
+        MemoryCacheKey <span class="variable">key</span> = <span class="keyword">new</span> MemoryCacheKey(uri, config);
+        mMemoryCache.put(<span class="variable">key</span>, bitmap, expiryTimestamp);<span class="comment">//添加到内存缓存</span>
+    }
+    <span class="keyword">return</span> bitmap;
+}
+</code></pre><h4 id="2-5-2_磁盘缓存Bitmap不存在，去下载bitmap_=_globalConfig-getBitmapCache()-downloadBitmap(uri,_displayConfig,_this);">2.5.2 磁盘缓存Bitmap不存在，去下载bitmap = globalConfig.getBitmapCache().downloadBitmap(uri, displayConfig, this);</h4><pre><code><span class="comment">/**
+ * BitmapCache.java
+ * 下载Bitmap
+ * 1.如果配置开启磁盘缓存，下载Bitmap到dirtyFile，根据结果clean或者delete，构造Bitmap
+ * 2.如果上述下载Bitmap为null，将Bitmap下载到内存输出流中，构造Bitmap
+ * 3.处理Bitmap旋转以及添加到内存缓存中
+ */</span>
+public Bitmap downloadBitmap<span class="params">(String uri, BitmapDisplayConfig config, final BitmapUtils
+        .BitmapLoadTask&lt;?&gt; task)</span> {
+
+    BitmapMeta bitmapMeta = new BitmapMeta<span class="params">()</span>;
+
+    OutputStream outputStream = null;
+    LruDiskCache.Snapshot snapshot = null;
+
+    try {
+        Bitmap bitmap = null;
+
+        <span class="comment">// try download to disk，下载到磁盘缓存</span>
+        <span class="keyword">if</span> <span class="params">(globalConfig.isDiskCacheEnabled<span class="params">()</span>)</span> {
+            <span class="keyword">if</span> <span class="params">(mDiskLruCache == null)</span> {
+                initDiskCache<span class="params">()</span>;
+            }
+
+            <span class="keyword">if</span> <span class="params">(mDiskLruCache != null)</span> {
+                try {
+                    snapshot = mDiskLruCache.get<span class="params">(uri)</span>;
+                    <span class="keyword">if</span> <span class="params">(snapshot == null)</span> {<span class="comment">//缓存不存在</span>
+                        LruDiskCache.Editor editor = mDiskLruCache.edit<span class="params">(uri)</span>;
+                        <span class="keyword">if</span> <span class="params">(editor != null)</span> {
+                            outputStream = editor.newOutputStream<span class="params">(DISK_CACHE_INDEX)</span>;<span class="comment">//dirtyFile</span>
+                            bitmapMeta.expiryTimestamp = globalConfig.getDownloader<span class="params">()</span>
+                                    .downloadToStream<span class="params">(uri, outputStream, task)</span>;
+                            <span class="comment">//下载Bitmap存储到dirtyFile</span>
+                            <span class="keyword">if</span> <span class="params">(bitmapMeta.expiryTimestamp &lt; <span class="number">0</span>)</span> {<span class="comment">//下载出错</span>
+                                editor.abort<span class="params">()</span>;
+                                return null;
+                            } <span class="keyword">else</span> {<span class="comment">//下载成功</span>
+                                editor.setEntryExpiryTimestamp<span class="params">(bitmapMeta.expiryTimestamp)</span>;
+                                editor.commit<span class="params">()</span>;
+                            }
+                            snapshot = mDiskLruCache.get<span class="params">(uri)</span>;
+                        }
+                    }
+                    <span class="keyword">if</span> <span class="params">(snapshot != null)</span> {
+                        bitmapMeta.inputStream = snapshot.getInputStream<span class="params">(DISK_CACHE_INDEX)</span>;
+                        bitmap = decodeBitmapMeta<span class="params">(bitmapMeta, config)</span>;<span class="comment">//构造Bitmap</span>
+                        <span class="keyword">if</span> <span class="params">(bitmap == null)</span> {<span class="comment">//获取的Bitmap为null，删除对应clean文件</span>
+                            bitmapMeta.inputStream = null;
+                            mDiskLruCache.remove<span class="params">(uri)</span>;
+                        }
+                    }
+                } catch <span class="params">(Throwable e)</span> {
+                    LogUtils.e<span class="params">(e.getMessage<span class="params">()</span>, e)</span>;
+                }
+            }
+        }
+
+        <span class="comment">// try download to memory stream，</span>
+        <span class="keyword">if</span> <span class="params">(bitmap == null)</span> {
+            outputStream = new ByteArrayOutputStream<span class="params">()</span>;
+            bitmapMeta.expiryTimestamp = globalConfig.getDownloader<span class="params">()</span>.downloadToStream<span class="params">(uri,
+                    outputStream, task)</span>;
+            <span class="keyword">if</span> <span class="params">(bitmapMeta.expiryTimestamp &lt; <span class="number">0</span>)</span> {<span class="comment">//下载失败了</span>
+                return null;
+            } <span class="keyword">else</span> {<span class="comment">//成功，去生成Bitmap</span>
+                bitmapMeta.data = <span class="params">(<span class="params">(ByteArrayOutputStream)</span> outputStream)</span>.toByteArray<span class="params">()</span>;
+                bitmap = decodeBitmapMeta<span class="params">(bitmapMeta, config)</span>;
+            }
+        }
+
+        <span class="keyword">if</span> <span class="params">(bitmap != null)</span> {<span class="comment">//处理旋转，添加到内存缓存</span>
+            bitmap = rotateBitmapIfNeeded<span class="params">(uri, config, bitmap)</span>;
+            bitmap = addBitmapToMemoryCache<span class="params">(uri, config, bitmap, bitmapMeta.expiryTimestamp)</span>;
+        }
+        return bitmap;
+    } catch <span class="params">(Throwable e)</span> {
+        LogUtils.e<span class="params">(e.getMessage<span class="params">()</span>, e)</span>;
+    } finally {
+        IOUtils.closeQuietly<span class="params">(outputStream)</span>;
+        IOUtils.closeQuietly<span class="params">(snapshot)</span>;
+    }
+
+    return null;
+}
+</code></pre><h5 id="2-5-2-1_获取Editor对象，mDiskLruCache-edit(uri);">2.5.2.1 获取Editor对象，mDiskLruCache.edit(uri);</h5><pre><code><span class="comment">/**
+ * Returns an editor for the entry named {@code Key}, or null if another
+ * edit is in progress.
+ */</span>
+<span class="keyword">public</span> Editor edit(<span class="keyword">String</span> <span class="variable">key</span>) <span class="keyword">throws</span> IOException {
+    <span class="keyword">String</span> diskKey = fileNameGenerator.generate(<span class="variable">key</span>);
+    <span class="keyword">return</span> editByDiskKey(diskKey, ANY_SEQUENCE_NUMBER);
+}
+
+<span class="comment">/**
+ * 获取Editor对象
+ * 1.检查是否存在Entry对象，不存在新建添加到缓存
+ * 2.新建Editor对象，添加到Entry对象添加日志。
+ */</span>
+<span class="keyword">private</span> <span class="keyword">synchronized</span> Editor editByDiskKey(<span class="keyword">String</span> diskKey, <span class="keyword">long</span> expectedSequenceNumber) <span class="keyword">throws</span>
+        IOException {
+    checkNotClosed();
+    Entry entry = lruEntries.<span class="built_in">get</span>(diskKey);
+    <span class="keyword">if</span> (expectedSequenceNumber != ANY_SEQUENCE_NUMBER &amp;&amp; (entry == <span class="keyword">null</span> || entry
+            .sequenceNumber != expectedSequenceNumber)) {
+        <span class="keyword">return</span> <span class="keyword">null</span>; <span class="comment">// Snapshot is stale.?</span>
+    }
+    <span class="keyword">if</span> (entry == <span class="keyword">null</span>) {<span class="comment">//不存在缓存记录</span>
+        entry = <span class="keyword">new</span> Entry(diskKey);
+        lruEntries.put(diskKey, entry);
+    } <span class="keyword">else</span> <span class="keyword">if</span> (entry.currentEditor != <span class="keyword">null</span>) {
+        <span class="keyword">return</span> <span class="keyword">null</span>; <span class="comment">// Another edit is in progress.</span>
+    }
+
+    Editor editor = <span class="keyword">new</span> Editor(entry);<span class="comment">//新建</span>
+    entry.currentEditor = editor;
+
+    <span class="comment">// Flush the journal before creating files to prevent file leaks.</span>
+    journalWriter.write(UPDATE + <span class="string">" "</span> + diskKey + <span class="string">'\n'</span>);
+    journalWriter.flush();
+    <span class="keyword">return</span> editor;
+}
+</code></pre><h5 id="2-5-2-2_获取dirtyFile输出流outputStream_=_editor-newOutputStream(DISK_CACHE_INDEX);">2.5.2.2 获取dirtyFile输出流outputStream = editor.newOutputStream(DISK_CACHE_INDEX);</h5><pre><code><span class="comment">/**
+    * Returns a new unbuffered output stream to write the value at
+    * {<span class="doctag">@code</span> index}. If the underlying output stream encounters errors
+    * when writing to the filesystem, this edit will be aborted when
+    * {<span class="doctag">@link</span> #commit} is called. The returned output stream does not throw
+    * IOExceptions.
+    * LruDiskCache.java
+    * 1.判断Entry对象当前的Editor应用是否与此相同，不同异常
+    * 2.取出Entry对象对应的dirtyFile，新建输出流并返回
+    */</span>
+   <span class="keyword">public</span> <span class="function">OutputStream <span class="title">newOutputStream</span><span class="params">(<span class="keyword">int</span> index)</span> <span class="keyword">throws</span> IOException </span>{
+       <span class="keyword">synchronized</span> (LruDiskCache.<span class="keyword">this</span>) {
+           <span class="keyword">if</span> (entry.currentEditor != <span class="keyword">this</span>) {
+               <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException();
+           }
+           <span class="keyword">if</span> (!entry.readable) {
+               written[index] = <span class="keyword">true</span>;
+           }
+           File dirtyFile = entry.getDirtyFile(index);
+           FileOutputStream outputStream;
+           <span class="keyword">try</span> {
+               outputStream = <span class="keyword">new</span> FileOutputStream(dirtyFile);
+           } <span class="keyword">catch</span> (FileNotFoundException e) {
+               <span class="comment">// Attempt to recreate the cache directory.</span>
+               directory.mkdirs();
+               <span class="keyword">try</span> {
+                   outputStream = <span class="keyword">new</span> FileOutputStream(dirtyFile);
+               } <span class="keyword">catch</span> (FileNotFoundException e2) {
+                   <span class="comment">// We are unable to recover. Silently eat the writes.</span>
+                   <span class="keyword">return</span> NULL_OUTPUT_STREAM;
+               }
+           }
+           <span class="keyword">return</span> <span class="keyword">new</span> FaultHidingOutputStream(outputStream);
+       }
+   }
+</code></pre><h5 id="2-5-2-3_去下载BitmapbitmapMeta-expiryTimestamp_=_globalConfig-getDownloader()-downloadToStream(uri,_outputStream,_task);">2.5.2.3 去下载BitmapbitmapMeta.expiryTimestamp = globalConfig.getDownloader().downloadToStream(uri, outputStream, task);</h5><pre><code> /**
+ * <span class="type">Download</span> bitmap to outputStream by uri.
+ *
+ * @param uri          file path, assets path(assets/xxx) <span class="keyword">or</span> http url.
+ * @param outputStream
+ * @param task
+ * @<span class="keyword">return</span> <span class="type">The</span> expiry time stamp <span class="keyword">or</span> -<span class="number">1</span> <span class="keyword">if</span> failed to download.
+ * 下载文件到dirtyFile
+ * <span class="number">1</span>.url是文件路径，获取响应输入流和文件长度，构造过期时间戳
+ * <span class="number">2</span>.url是assets路径获取响应输入流和文件长度，构造过期时间戳为最大值
+ * <span class="number">3</span>.url是网址，获取<span class="type">URLConnection</span>，获取输入流，构造时间戳
+ * <span class="number">4</span>.将获取的输入流读入资源，写出到提供的输出流
+ * <span class="number">5</span>.返回过期时间戳
+ */
+@<span class="type">Override</span>
+public long downloadToStream(<span class="type">String</span> uri, <span class="type">OutputStream</span> outputStream, final <span class="type">BitmapUtils</span>
+        .<span class="type">BitmapLoadTask</span>&lt;?&gt; task) {
+
+    <span class="keyword">if</span> (task == null || task.isCancelled() || task.getTargetContainer() == null) <span class="keyword">return</span> -<span class="number">1</span>;
+
+    <span class="type">URLConnection</span> urlConnection = null;
+    <span class="type">BufferedInputStream</span> bis = null;
+
+    <span class="type">OtherUtils</span>.trustAllHttpsURLConnection();
+
+    long <span class="literal">result</span> = -<span class="number">1</span>;
+    long fileLen = <span class="number">0</span>;
+    long currCount = <span class="number">0</span>;
+    <span class="keyword">try</span> {
+        <span class="keyword">if</span> (uri.startsWith(<span class="string">"/"</span>)) {//url是一个文件路径
+            <span class="type">FileInputStream</span> fileInputStream = new <span class="type">FileInputStream</span>(uri);
+            fileLen = fileInputStream.available();//该方法返回可估算从这个输入流中可无阻塞读取剩余的字节数。
+            bis = new <span class="type">BufferedInputStream</span>(fileInputStream);
+            <span class="literal">result</span> = <span class="type">System</span>.currentTimeMillis() + this.getDefaultExpiry();
+        } <span class="keyword">else</span> <span class="keyword">if</span> (uri.startsWith(<span class="string">"assets/"</span>)) {//assets文件夹中的资源
+            <span class="type">InputStream</span> inputStream = this.getContext().getAssets().open(uri.substring(<span class="number">7</span>, uri
+                    .length()));
+
+            fileLen = inputStream.available();
+            bis = new <span class="type">BufferedInputStream</span>(inputStream);
+            <span class="literal">result</span> = <span class="type">Long</span>.<span class="type">MAX_VALUE</span>;
+        } <span class="keyword">else</span> {//设置一个资源网址
+            final <span class="type">URL</span> url = new <span class="type">URL</span>(uri);
+            urlConnection = url.openConnection();
+            urlConnection.setConnectTimeout(this.getDefaultConnectTimeout());
+            urlConnection.setReadTimeout(this.getDefaultReadTimeout());
+            bis = new <span class="type">BufferedInputStream</span>(urlConnection.getInputStream());
+            <span class="literal">result</span> = urlConnection.getExpiration();//响应过期时间戳
+            <span class="literal">result</span> = <span class="literal">result</span> &lt; <span class="type">System</span>.currentTimeMillis() ? <span class="type">System</span>.currentTimeMillis() + this
+                    .getDefaultExpiry() : <span class="literal">result</span>;
+            fileLen = urlConnection.getContentLength();
+        }
+
+        <span class="keyword">if</span> (task.isCancelled() || task.getTargetContainer() == null) <span class="keyword">return</span> -<span class="number">1</span>;
+
+        byte[] buffer = new byte[<span class="number">4096</span>];
+        <span class="type">int</span> len = <span class="number">0</span>;
+        <span class="type">BufferedOutputStream</span> <span class="keyword">out</span> = new <span class="type">BufferedOutputStream</span>(outputStream);
+        <span class="keyword">while</span> ((len = bis.read(buffer)) != -<span class="number">1</span>) {
+            <span class="keyword">out</span>.write(buffer, <span class="number">0</span>, len);//向提供的输出流写出，这个输出流一般是dirtyFile
+            currCount += len;
+            <span class="keyword">if</span> (task.isCancelled() || task.getTargetContainer() == null) <span class="keyword">return</span> -<span class="number">1</span>;
+            task.updateProgress(fileLen, currCount);
+        }
+        <span class="keyword">out</span>.flush();
+    } catch (<span class="type">Throwable</span> e) {
+        <span class="literal">result</span> = -<span class="number">1</span>;
+        <span class="type">LogUtils</span>.e(e.getMessage(), e);
+    } <span class="keyword">finally</span> {
+        <span class="type">IOUtils</span>.closeQuietly(bis);
+    }
+    <span class="keyword">return</span> <span class="literal">result</span>;
+}
+</code></pre><h5 id="2-5-2-4_下载文件出错editor-abort();">2.5.2.4 下载文件出错editor.abort();</h5><pre><code><span class="comment">/**
+ * Aborts this edit. This releases the edit lock so another edit may be
+ * started on the same key.
+ */</span>
+public void abort<span class="params">()</span> throws IOException {
+    completeEdit<span class="params">(this, <span class="literal">false</span>)</span>;
+}
+
+<span class="comment">/**
+ * 1.检查初次生成entry的index时候有值
+ * 2.遍历所有缓存文件，如果状态为success，将存在的dirty文件清洗，缓存大小信息
+ * 3.如果状态为失败，删除所有dirty文件
+ * 4.更新日志文件
+ */</span>
+private synchronized void completeEdit<span class="params">(Editor editor, boolean success)</span> throws IOException {
+    Entry entry = editor.entry;
+    <span class="keyword">if</span> <span class="params">(entry.currentEditor != editor)</span> {
+        throw new IllegalStateException<span class="params">()</span>;
+    }
+
+    <span class="comment">// If this edit is creating the entry for the first time, every index must have a value.</span>
+    <span class="keyword">if</span> <span class="params">(success &amp;&amp; !entry.readable)</span> {
+        <span class="keyword">for</span> <span class="params">(int i = <span class="number">0</span>; i &lt; valueCount; i++)</span> {
+            <span class="keyword">if</span> <span class="params">(!editor.written[i])</span> {
+                editor.abort<span class="params">()</span>;
+                throw new IllegalStateException<span class="params">(<span class="string">"Newly created entry didn't create value for "</span> +
+                        <span class="string">"index "</span> + i)</span>;
+            }
+            <span class="keyword">if</span> <span class="params">(!entry.getDirtyFile<span class="params">(i)</span>.exists<span class="params">()</span>)</span> {
+                editor.abort<span class="params">()</span>;
+                return;
+            }
+        }
+    }
+
+    <span class="keyword">for</span> <span class="params">(int i = <span class="number">0</span>; i &lt; valueCount; i++)</span> {
+        File dirty = entry.getDirtyFile<span class="params">(i)</span>;
+        <span class="keyword">if</span> <span class="params">(success)</span> {<span class="comment">//如果成功，清洗旧文件</span>
+            <span class="keyword">if</span> <span class="params">(dirty.exists<span class="params">()</span>)</span> {
+                File clean = entry.getCleanFile<span class="params">(i)</span>;
+                dirty.renameTo<span class="params">(clean)</span>;<span class="comment">//重命名文件</span>
+                long oldLength = entry.lengths[i];
+                long newLength = clean.length<span class="params">()</span>;
+                entry.lengths[i] = newLength;<span class="comment">//更新文件长度</span>
+                size = size - oldLength + newLength;
+            }
+        } <span class="keyword">else</span> {
+            deleteIfExists<span class="params">(dirty)</span>;<span class="comment">//失败就删除dirtyFile</span>
+        }
+    }
+<span class="comment">//更新日志文件</span>
+    redundantOpCount++;
+    entry.currentEditor = null;
+    <span class="keyword">if</span> <span class="params">(entry.readable | success)</span> {
+        entry.readable = <span class="literal">true</span>;
+        journalWriter.write<span class="params">(CLEAN + <span class="string">" "</span> + entry.diskKey + <span class="string">" "</span> + EX<span class="literal">PI</span>RY_PREFIX + entry
+                .expiryTimestamp + entry.getLengths<span class="params">()</span> + '\n')</span>;
+        <span class="keyword">if</span> <span class="params">(success)</span> {
+            entry.sequenceNumber = nextSequenceNumber++;
+        }
+    } <span class="keyword">else</span> {
+        lruEntries.remove<span class="params">(entry.diskKey)</span>;
+        journalWriter.write<span class="params">(DELETE + <span class="string">" "</span> + entry.diskKey + '\n')</span>;
+    }
+    journalWriter.flush<span class="params">()</span>;
+
+    <span class="keyword">if</span> <span class="params">(size &gt; maxSize || journalRebuildRequired<span class="params">()</span>)</span> {
+        executorService.submit<span class="params">(cleanupCallable)</span>;
+    }
+}
+</code></pre><h5 id="2-5-2-5下载成功提交editor-commit();">2.5.2.5下载成功提交editor.commit();</h5><pre><code><span class="comment">/**
+     * Commits this edit so it is visible to readers.  This releases the
+     * edit lock so another edit may be started on the same key.
+     */</span>
+    <span class="keyword">public</span> <span class="keyword">void</span> commit() <span class="keyword">throws</span> IOException {
+        <span class="keyword">if</span> (hasErrors) {
+            completeEdit(<span class="keyword">this</span>, <span class="keyword">false</span>);
+            removeByDiskKey(entry.diskKey); <span class="comment">// The previous entry is stale.</span>
+        } <span class="keyword">else</span> {
+            completeEdit(<span class="keyword">this</span>, <span class="keyword">true</span>);
+        }
+        committed = <span class="keyword">true</span>;
+    }
+
+
+
+<span class="comment">/**
+ * Drops the entry for {@code diskKey} if it exists and can be removed. Entries
+ * actively being edited cannot be removed.
+ *
+ * @return true if an entry was removed.
+ * 删除clean文件
+ */</span>
+<span class="keyword">private</span> <span class="keyword">synchronized</span> <span class="keyword">boolean</span> removeByDiskKey(String diskKey) <span class="keyword">throws</span> IOException {
+    checkNotClosed();
+    Entry entry = lruEntries.get(diskKey);
+    <span class="keyword">if</span> (entry == <span class="keyword">null</span> || entry.currentEditor != <span class="keyword">null</span>) {
+        <span class="keyword">return</span> <span class="keyword">false</span>;
+    }
+
+    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; valueCount; i++) {<span class="comment">//删除clean文件</span>
+        <span class="keyword">File</span> <span class="keyword">file</span> = entry.getCleanFile(i);
+        <span class="keyword">if</span> (<span class="keyword">file</span>.exists() &amp;&amp; !<span class="keyword">file</span>.<span class="keyword">delete</span>()) {
+            <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"failed to delete "</span> + <span class="keyword">file</span>);
+        }
+        <span class="keyword">size</span> -= entry.lengths[i];
+        entry.lengths[i] = <span class="number">0</span>;
+    }
+
+    redundantOpCount++;
+    journalWriter.<span class="keyword">append</span>(<span class="keyword">DELETE</span> + <span class="string">" "</span> + diskKey + <span class="string">'\n'</span>);
+    lruEntries.remove(diskKey);
+
+    <span class="keyword">if</span> (journalRebuildRequired()) {
+        executorService.submit(cleanupCallable);
+    }
+
+    <span class="keyword">return</span> <span class="keyword">true</span>;
+}
+</code></pre><h5 id="2-5-2-6再次获取snapshot_=_mDiskLruCache-get(uri);见2-5-1-1，此次snapshot对象已经存在">2.5.2.6再次获取snapshot = mDiskLruCache.get(uri);见2.5.1.1，此次snapshot对象已经存在</h5><h5 id="2-5-2-7根据下载的资源构造bitmap_=_decodeBitmapMeta(bitmapMeta,_config);">2.5.2.7根据下载的资源构造bitmap = decodeBitmapMeta(bitmapMeta, config);</h5><pre><code><span class="comment">/**
+ * 通过BitmapMeta对象构造Bitmap
+ * 1.如果BitmapMeta对象输入流不为空，以输入流获取Bitmap
+ * 2.如果BitmapMeta对象byte数据不为空，以此数据获取Bitmap
+ */</span>
+<span class="label">private</span> <span class="keyword">Bitmap </span>decodeBitmapMeta(<span class="keyword">BitmapMeta </span><span class="keyword">bitmapMeta, </span><span class="keyword">BitmapDisplayConfig </span>config) throws
+        IOException {
+    <span class="preprocessor">if</span> (<span class="keyword">bitmapMeta </span>== null) return null<span class="comment">;</span>
+    <span class="keyword">Bitmap </span><span class="keyword">bitmap </span>= null<span class="comment">;</span>
+    <span class="preprocessor">if</span> (<span class="keyword">bitmapMeta.inputStream </span>!= null) {
+        <span class="preprocessor">if</span> (config == null <span class="title">||</span> config.isShowOriginal()) {
+            <span class="keyword">bitmap </span>= <span class="keyword">BitmapDecoder.decodeFileDescriptor(bitmapMeta.inputStream.getFD());
+</span>        } <span class="preprocessor">else</span> {
+            <span class="keyword">bitmap </span>= <span class="keyword">BitmapDecoder.decodeSampledBitmapFromDescriptor(bitmapMeta.inputStream
+</span>                    .getFD(), config.getBitmapMaxSize(), config.getBitmapConfig())<span class="comment">;</span>
+        }
+    } <span class="preprocessor">else</span> <span class="preprocessor">if</span> (<span class="keyword">bitmapMeta.data </span>!= null) {
+        <span class="preprocessor">if</span> (config == null <span class="title">||</span> config.isShowOriginal()) {
+            <span class="keyword">bitmap </span>= <span class="keyword">BitmapDecoder.decodeByteArray(bitmapMeta.data);
+</span>        } <span class="preprocessor">else</span> {
+            <span class="keyword">bitmap </span>= <span class="keyword">BitmapDecoder.decodeSampledBitmapFromByteArray(bitmapMeta.data, </span>config
+                    .getBitmapMaxSize(), config.getBitmapConfig())<span class="comment">;</span>
+        }
+    }
+    return <span class="keyword">bitmap;
+</span>}
+</code></pre><h5 id="2-5-2-8_如果下载到磁盘缓存为null再去下载到内存缓存中bitmapMeta-expiryTimestamp_=_globalConfig-getDownloader()-downloadToStream(uri,outputStream,_task);见2-5-2-3">2.5.2.8 如果下载到磁盘缓存为null再去下载到内存缓存中bitmapMeta.expiryTimestamp = globalConfig.getDownloader().downloadToStream(uri,outputStream, task);见2.5.2.3</h5><h5 id="2-5-2-9_处理下载的资源构造Bitmap，bitmap_=_decodeBitmapMeta(bitmapMeta,_config);见2-5-2-7">2.5.2.9 处理下载的资源构造Bitmap，bitmap = decodeBitmapMeta(bitmapMeta, config);见2.5.2.7</h5><h5 id="2-5-2-10_如果下载成功，先去处理图片旋转问题；见2-5-1-4。同时将Bitmap添加到内存缓存中；见2-5-1-5">2.5.2.10 如果下载成功，先去处理图片旋转问题；见2.5.1.4。同时将Bitmap添加到内存缓存中；见2.5.1.5</h5><h4 id="2-5-3_后台任务执行结束，处理回调onPostExecute">2.5.3 后台任务执行结束，处理回调onPostExecute</h4><pre><code><span class="comment">//Bitmap加载成功回调</span>
+    @Override
+    <span class="keyword">protected</span> <span class="keyword">void</span> onPostExecute(Bitmap bitmap) {
+        <span class="keyword">final</span> T <span class="keyword">container</span> = <span class="keyword">this</span>.getTargetContainer();
+        <span class="keyword">if</span> (<span class="keyword">container</span> != <span class="keyword">null</span>) {
+            <span class="keyword">if</span> (bitmap != <span class="keyword">null</span>) {
+                callBack.onLoadCompleted(<span class="keyword">container</span>, <span class="keyword">this</span>.uri, bitmap, displayConfig, from);
+            } <span class="keyword">else</span> {
+                callBack.onLoadFailed(<span class="keyword">container</span>, <span class="keyword">this</span>.uri, displayConfig
+                        .getLoadFailedDrawable());
+            }
+        }
+    }
+</code></pre><p>至此BitmapLoadTask完成。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2015/06/11/XUtil图片模块源码分析/" data-id="cibi04q5q00032xgqn0pnnzv0" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/源码分析/">源码分析</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2015/05/31/XUtils网络请求模块源码分析/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">XUtils网络请求模块源码分析</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/源码分析/">源码分析</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/源码分析/" style="font-size: 10px;">源码分析</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/06/11/XUtil图片模块源码分析/">XUtils图片模块源码分析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/05/31/XUtils网络请求模块源码分析/">XUtils网络请求模块源码分析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/05/20/XUtils数据库模块源码分析/">XUtils数据库模块源码分析</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 Leif<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+  </div>
+</body>
+</html>

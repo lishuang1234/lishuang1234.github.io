@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>XUtils数据库模块源码分析 | Leif&#39;s Home</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="详细分析XUtils数据库CRUD代码调用操作。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="XUtils数据库模块源码分析">
+<meta property="og:url" content="http://yoursite.com/2015/05/20/XUtils数据库模块源码分析/index.html">
+<meta property="og:site_name" content="Leif's Home">
+<meta property="og:description" content="详细分析XUtils数据库CRUD代码调用操作。">
+<meta property="og:updated_time" content="2015-06-16T15:36:55.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="XUtils数据库模块源码分析">
+<meta name="twitter:description" content="详细分析XUtils数据库CRUD代码调用操作。">
+  
+    <link rel="alternative" href="/atom.xml" title="Leif&#39;s Home" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Leif&#39;s Home</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">Just do id!</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://yoursite.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-XUtils数据库模块源码分析" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2015/05/20/XUtils数据库模块源码分析/" class="article-date">
+  <time datetime="2015-05-20T06:08:50.000Z" itemprop="datePublished">2015-05-20</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      XUtils数据库模块源码分析
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>详细分析XUtils数据库CRUD代码调用操作。<br><a id="more"></a></p>
+<h2 id="一_数据库创建">一 数据库创建</h2><h3 id="1-客户端程序：">1.客户端程序：</h3><pre><code>DbUtils.DaoConfig config = new DbUtils.DaoConfig<span class="params">(context)</span>;
+    config.setDbName<span class="params">(<span class="string">"user.db"</span>)</span>;
+    mUserInforDbUtils = DbUtils.create<span class="params">(config)</span>;
+</code></pre><h3 id="2-DbUtils的创建函数：">2.DbUtils的创建函数：</h3><pre><code><span class="keyword">public</span> <span class="keyword">static</span> <span class="function">DbUtils <span class="title">create</span><span class="params">(DaoConfig daoConfig)</span> </span>{
+    <span class="function"><span class="keyword">return</span> <span class="title">getInstance</span><span class="params">(daoConfig)</span></span>;
+}
+</code></pre><h3 id="3-私有静态方法获取DbUtils实例：先检查缓存，没有就去创建。">3.私有静态方法获取DbUtils实例：先检查缓存，没有就去创建。</h3><pre><code><span class="comment">/**
+ * 获取一个DbUtils，首先检查Map是否有缓存，没有新建添加到Map中
+ */</span>
+private synchronized static DbUtils getInstance<span class="params">(DaoConfig daoConfig)</span> {
+    DbUtils dao = daoMap.get<span class="params">(daoConfig.getDbName<span class="params">()</span>)</span>;
+    <span class="keyword">if</span> <span class="params">(dao == null)</span> {
+        dao = new DbUtils<span class="params">(daoConfig)</span>;<span class="comment">//生成数据库操作对象，新建数据库</span>
+        daoMap.put<span class="params">(daoConfig.getDbName<span class="params">()</span>, dao)</span>;<span class="comment">//存放数据库操作对象</span>
+    } <span class="keyword">else</span> {
+        dao.daoConfig = daoConfig;<span class="comment">//更新配置</span>
+    }
+    <span class="comment">//处理数据库更新问题</span>
+    SQLiteDatabase database = dao.database;
+    int oldVersion = database.getVersion<span class="params">()</span>;
+    int newVersion = daoConfig.getDbVersion<span class="params">()</span>;
+    <span class="keyword">if</span> <span class="params">(oldVersion != newVersion)</span> {<span class="comment">//版本不一致</span>
+        <span class="keyword">if</span> <span class="params">(oldVersion != <span class="number">0</span>)</span> {
+            DbUpgradeListener upgradeListener = daoConfig.getDbUpgradeListener<span class="params">()</span>;
+            <span class="keyword">if</span> <span class="params">(upgradeListener != null)</span> {
+                upgradeListener.onUpgrade<span class="params">(dao, oldVersion, newVersion)</span>;<span class="comment">//用户自定义更新</span>
+            } <span class="keyword">else</span> {<span class="comment">//清空旧的数据库</span>
+                try {
+                    dao.dropDb<span class="params">()</span>;
+                } catch <span class="params">(DbException e)</span> {
+                    LogUtils.e<span class="params">(e.getMessage<span class="params">()</span>, e)</span>;
+                }
+            }
+        }
+        database.setVersion<span class="params">(newVersion)</span>;
+    }
+    return dao;
+}
+</code></pre><h4 id="3-1_私有构造方法：">3.1 私有构造方法：</h4><pre><code><span class="function"><span class="keyword">private</span> <span class="title">DbUtils</span><span class="params">(DaoConfig config)</span> </span>{
+    <span class="keyword">if</span> (config == <span class="keyword">null</span>) {
+        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">"daoConfig may not be null"</span>);
+    }
+    <span class="keyword">this</span>.database = createDatabase(config);
+    <span class="keyword">this</span>.daoConfig = config;
+}
+</code></pre><h5 id="3-1-1_构造方法生成的数据库createDatabase(config)：">3.1.1 构造方法生成的数据库createDatabase(config)：</h5><pre><code>/*
+ * 新建数据库
+ */
+private <span class="type">SQLiteDatabase</span> createDatabase(<span class="type">DaoConfig</span> config) {
+    <span class="type">SQLiteDatabase</span> <span class="literal">result</span> = null;
+    <span class="type">String</span> dbDir = config.getDbDir();
+    <span class="keyword">if</span> (!<span class="type">TextUtils</span>.isEmpty(dbDir)) {//数据库路径不为空
+        <span class="type">File</span> dir = new <span class="type">File</span>(dbDir);
+        <span class="keyword">if</span> (dir.exists() || dir.mkdirs()) {
+            <span class="type">File</span> dbFile = new <span class="type">File</span>(dbDir, config.getDbName());
+            <span class="literal">result</span> = <span class="type">SQLiteDatabase</span>.openOrCreateDatabase(dbFile, null);//生成数据库文件
+        }
+    } <span class="keyword">else</span> {//生成数据库对象
+        <span class="literal">result</span> = config.getContext().openOrCreateDatabase(config.getDbName(), <span class="number">0</span>, null);
+    }
+    <span class="keyword">return</span> <span class="literal">result</span>;
+}
+</code></pre><h4 id="3-2清空数据库：">3.2清空数据库：</h4><pre><code><span class="comment">/**
+ * 清空数据库
+ */</span>
+<span class="keyword">public</span> <span class="keyword">void</span> dropDb() <span class="keyword">throws</span> DbException {
+    Cursor <span class="built_in">cursor</span> = execQuery(<span class="string">"SELECT name FROM sqlite_master WHERE type='table' AND name&lt;&gt;'sqlite_sequence'"</span>);
+<span class="comment">//获得数据库中的所有表</span>
+    <span class="keyword">if</span> (<span class="built_in">cursor</span> != <span class="keyword">null</span>) {
+        <span class="keyword">try</span> {
+            <span class="keyword">while</span> (<span class="built_in">cursor</span>.moveToNext()) {
+                <span class="keyword">try</span> {
+                    <span class="keyword">String</span> tableName = <span class="built_in">cursor</span>.getString(<span class="number">0</span>);
+                    execNonQuery(<span class="string">"DROP TABLE "</span> + tableName);<span class="comment">//清空</span>
+                    <span class="keyword">Table</span>.remove(<span class="keyword">this</span>, tableName);
+                } <span class="keyword">catch</span> (Throwable e) {
+                    LogUtils.e(e.getMessage(), e);
+                }
+            }
+        } <span class="keyword">catch</span> (Throwable e) {
+            <span class="keyword">throw</span> <span class="keyword">new</span> DbException(e);
+        } <span class="keyword">finally</span> {
+            IOUtils.closeQuietly(<span class="built_in">cursor</span>);
+        }
+    }
+}
+</code></pre><h2 id="二_数据添加数据">二  数据添加数据</h2><h3 id="4-客户端存储数据：">4.客户端存储数据：</h3><pre><code><span class="keyword">try</span> {
+        mUserInforDbUtils.save(user); // 使用saveBindingId保存实体时会为实体的id赋值
+    } <span class="keyword">catch</span> (DbException <span class="literal">e</span>) {
+        <span class="literal">e</span>.printStackTrace();
+    }
+</code></pre><h4 id="4-1_save函数_mUserInforDbUtils-save(user);">4.1 save函数 mUserInforDbUtils.save(user);</h4><pre><code><span class="comment">/**
+ * 数据库存储记录
+ */</span>
+public void save<span class="params">(Object entity)</span> throws DbException {
+    try {
+        beginTransaction<span class="params">()</span>;<span class="comment">//开启事务</span>
+        createTableIfNotExist<span class="params">(entity.getClass<span class="params">()</span>)</span>;<span class="comment">//检测表是否存在,不存在就新建</span>
+        execNonQuery<span class="params">(SqlInfoBuilder.buildInsertSqlInfo<span class="params">(this, entity)</span>)</span>;
+        setTransactionSuccessful<span class="params">()</span>;
+    } finally {
+        endTransaction<span class="params">()</span>;
+    }
+}
+</code></pre><h5 id="4-1-1_开启数据库事物管理_beginTransaction();">4.1.1 开启数据库事物管理 beginTransaction();</h5><pre><code><span class="comment">/**
+ * 开启事务管理
+ */</span>
+<span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">beginTransaction</span>(<span class="params"></span>) </span>{
+    <span class="keyword">if</span> (allowTransaction) {<span class="comment">//允许开启</span>
+        database.beginTransaction();
+    } <span class="keyword">else</span> {<span class="comment">//不允许锁定</span>
+        writeLock.<span class="keyword">lock</span>();
+        writeLocked = <span class="keyword">true</span>;
+    }
+}
+</code></pre><h5 id="4-1-2_表不存在就创建_createTableIfNotExist(entity-getClass());">4.1.2 表不存在就创建 createTableIfNotExist(entity.getClass());</h5><pre><code><span class="comment">/**
+ * 不存在表就新建
+ */</span>
+public void createTableIfNotExist<span class="params">(Class&lt;?&gt; entityType)</span> throws DbException {
+    <span class="keyword">if</span> <span class="params">(!tableIsExist<span class="params">(entityType)</span>)</span> {<span class="comment">//表不存在，注意表对象已存在</span>
+        SqlInfo sqlInfo = SqlInfoBuilder.buildCreateTableSqlInfo<span class="params">(this, entityType)</span>;<span class="comment">//生成SQL语句对象</span>
+        execNonQuery<span class="params">(sqlInfo)</span>;<span class="comment">//执行语句，建表</span>
+        String execAfterTableCreated = TableUtils.getExecAfterTableCreated<span class="params">(entityType)</span>;
+        <span class="keyword">if</span> <span class="params">(!TextUtils.isEmpty<span class="params">(execAfterTableCreated)</span>)</span> {
+            execNonQuery<span class="params">(execAfterTableCreated)</span>;<span class="comment">//设置表默认值</span>
+        }
+    }
+}
+</code></pre><h6 id="4-1-2-1判断表是否存在_tableIsExist(entityType)；">4.1.2.1判断表是否存在 tableIsExist(entityType)；</h6><pre><code><span class="comment">/**
+ * 判断表是否存在
+ */</span>
+<span class="keyword">public</span> <span class="built_in">boolean</span> tableIsExist(Class&lt;?&gt; entityType) <span class="keyword">throws</span> DbException {
+    <span class="keyword">Table</span> table = <span class="keyword">Table</span>.<span class="built_in">get</span>(<span class="keyword">this</span>, entityType);<span class="comment">//根据类对象获取表</span>
+    <span class="keyword">if</span> (table.isCheckedDatabase()) {
+        <span class="keyword">return</span> <span class="keyword">true</span>;
+    }
+    Cursor <span class="built_in">cursor</span> = execQuery(<span class="string">"SELECT COUNT(*) AS c FROM sqlite_master WHERE type='table' AND name='"</span> + table.tableName + <span class="string">"'"</span>);<span class="comment">//查找制定表</span>
+    <span class="keyword">if</span> (<span class="built_in">cursor</span> != <span class="keyword">null</span>) {
+        <span class="keyword">try</span> {
+            <span class="keyword">if</span> (<span class="built_in">cursor</span>.moveToNext()) {
+                <span class="built_in">int</span> count = <span class="built_in">cursor</span>.getInt(<span class="number">0</span>);
+                <span class="keyword">if</span> (count &gt; <span class="number">0</span>) {<span class="comment">//存在指定的表</span>
+                    table.setCheckedDatabase(<span class="keyword">true</span>);
+                    <span class="keyword">return</span> <span class="keyword">true</span>;
+                }
+            }
+        } <span class="keyword">catch</span> (Throwable e) {
+            <span class="keyword">throw</span> <span class="keyword">new</span> DbException(e);
+        } <span class="keyword">finally</span> {
+            IOUtils.closeQuietly(<span class="built_in">cursor</span>);
+        }
+    }
+    <span class="keyword">return</span> <span class="keyword">false</span>;
+}
+</code></pre><h6 id="4-1-2-1-1_获取表对象Table-get(this,_entityType);缓存中去找没有去新建">4.1.2.1.1 获取表对象Table.get(this, entityType);缓存中去找没有去新建</h6><pre><code><span class="comment">/**
+ * 获取表
+ */</span>
+public static synchronized <span class="keyword">Table</span> <span class="literal">get</span>(DbUtils <span class="keyword">db</span>, <span class="keyword">Class</span>&lt;?&gt; entityType) {
+    String tableKey = <span class="keyword">db</span>.getDaoConfig().getDbName() + <span class="string">"#"</span> + entityType.getName();
+            <span class="keyword">Table</span> <span class="keyword">table</span> = tableMap.<span class="literal">get</span>(tableKey);
+    <span class="keyword">if</span> (<span class="keyword">table</span> == null) {<span class="comment">//没有缓存</span>
+        <span class="keyword">table</span> = new <span class="keyword">Table</span>(<span class="keyword">db</span>, entityType);
+        tableMap.put(tableKey, <span class="keyword">table</span>);
+    }
+    <span class="keyword">return</span> <span class="keyword">table</span>;
+}
+</code></pre><h6 id="4-1-2-1-1-1_Table私有构造方法：">4.1.2.1.1.1 Table私有构造方法：</h6><pre><code>private Table<span class="params">(DbUtils db, Class&lt;?&gt; entityType)</span> {
+    this.db = db;
+    this.tableName = TableUtils.getTableName<span class="params">(entityType)</span>;<span class="comment">//获取表名</span>
+    this.id = TableUtils.getId<span class="params">(entityType)</span>;
+    this.columnMap = TableUtils.getColumnMap<span class="params">(entityType)</span>;<span class="comment">//获取列MAP</span>
+    finderMap = new HashMap&lt;String, Finder&gt;<span class="params">()</span>;
+    <span class="keyword">for</span> <span class="params">(Column column : columnMap.values<span class="params">()</span>)</span> {<span class="comment">//得到主表列对象</span>
+        column.setTable<span class="params">(this)</span>;
+        <span class="keyword">if</span> <span class="params">(column instanceof Finder)</span> {
+            finderMap.put<span class="params">(column.getColumnName<span class="params">()</span>, <span class="params">(Finder)</span> column)</span>;
+        }
+    }
+}
+</code></pre><h6 id="4-1-2-1-1-1-1_获取表名_TableUtils-getTableName(entityType);">4.1.2.1.1.1.1 获取表名 TableUtils.getTableName(entityType);</h6><pre><code>public static String getTableName(<span class="keyword">Class</span>&lt;?&gt; entityType) {
+    <span class="keyword">Table</span> <span class="keyword">table</span> = entityType.getAnnotation(<span class="keyword">Table</span>.<span class="keyword">class</span>);
+    <span class="keyword">if</span> (<span class="keyword">table</span> == null || TextUtils.isEmpty(<span class="keyword">table</span>.name())) {<span class="comment">//没有注解字段Table</span>
+        <span class="keyword">return</span> entityType.getName().<span class="keyword">replace</span>('.', '_');
+    }
+    <span class="keyword">return</span> <span class="keyword">table</span>.name();
+}
+</code></pre><h6 id="4-1-2-1-1-1-2_获取表的列对象_TableUtils-getColumnMap(entityType);">4.1.2.1.1.1.2 获取表的列对象 TableUtils.getColumnMap(entityType);</h6><pre><code><span class="comment">/**
+ * 根据类对象获取列对象的MAP
+ */</span>
+<span class="keyword">static</span> <span class="keyword">synchronized</span> <span class="keyword">HashMap</span>&lt;<span class="keyword">String</span>, Column&gt; getColumnMap(Class&lt;?&gt; entityType) {
+    <span class="keyword">if</span> (entityColumnsMap.containsKey(entityType.getName())) {<span class="comment">//这个类已经存储过了数据库列对象</span>
+        <span class="keyword">return</span> entityColumnsMap.<span class="built_in">get</span>(entityType.getName());
+    }
+    <span class="keyword">HashMap</span>&lt;<span class="keyword">String</span>, Column&gt; columnMap = <span class="keyword">new</span> <span class="keyword">HashMap</span>&lt;<span class="keyword">String</span>, Column&gt;();
+    <span class="keyword">String</span> primaryKeyFieldName = getPrimaryKeyFieldName(entityType);
+    addColumns2Map(entityType, primaryKeyFieldName, columnMap);<span class="comment">//缓存类对象的属性指为Columns对象</span>
+    entityColumnsMap.put(entityType.getName(), columnMap);<span class="comment">//缓存这个数据表的Columns对象MAP集</span>
+    <span class="keyword">return</span> columnMap;
+}
+</code></pre><h6 id="4-1-2-1-1-1-2-1_缓存列对象addColumns2Map(entityType,_primaryKeyFieldName,_columnMap);">4.1.2.1.1.1.2.1 缓存列对象addColumns2Map(entityType, primaryKeyFieldName, columnMap);</h6><pre><code><span class="comment">/**
+ * 缓存类对象的属性指为Columns对象
+ */</span>
+private static void addColumns2Map<span class="params">(Class&lt;?&gt; entityType, String primaryKeyFieldName, HashMap&lt;String, Column&gt; columnMap)</span> {
+    <span class="keyword">if</span> <span class="params">(Object.class.equals<span class="params">(entityType)</span>)</span> return;
+    try {
+        Field[] fields = entityType.getDeclaredFields<span class="params">()</span>;
+        <span class="keyword">for</span> <span class="params">(Field field : fields)</span> {
+            <span class="keyword">if</span> <span class="params">(ColumnUtils.isTransient<span class="params">(field)</span> || Modifier.isStatic<span class="params">(field.getModifiers<span class="params">()</span>)</span>)</span> {<span class="comment">//忽略static及注解Transient的属性</span>
+                continue;
+            }
+            <span class="keyword">if</span> <span class="params">(ColumnConverterFactory.isSupportColumnConverter<span class="params">(field.getType<span class="params">()</span>)</span>)</span> {<span class="comment">//属性字段支持列对象转换</span>
+                <span class="keyword">if</span> <span class="params">(!field.getName<span class="params">()</span>.equals<span class="params">(primaryKeyFieldName)</span>)</span> {<span class="comment">//不是ID字段</span>
+                    Column column = new Column<span class="params">(entityType, field)</span>;
+                    <span class="keyword">if</span> <span class="params">(!columnMap.containsKey<span class="params">(column.getColumnName<span class="params">()</span>)</span>)</span> {<span class="comment">//缓存列对象</span>
+                        columnMap.put<span class="params">(column.getColumnName<span class="params">()</span>, column)</span>;
+                    }
+                }
+            } <span class="keyword">else</span> <span class="keyword">if</span> <span class="params">(ColumnUtils.isForeign<span class="params">(field)</span>)</span> {<span class="comment">// 属性字段是Foreign注解，从表注解</span>
+                Foreign column = new Foreign<span class="params">(entityType, field)</span>;
+                <span class="keyword">if</span> <span class="params">(!columnMap.containsKey<span class="params">(column.getColumnName<span class="params">()</span>)</span>)</span> {
+                    columnMap.put<span class="params">(column.getColumnName<span class="params">()</span>, column)</span>;
+                }
+            } <span class="keyword">else</span> <span class="keyword">if</span> <span class="params">(ColumnUtils.isFinder<span class="params">(field)</span>)</span> {<span class="comment">//属性字段是Finder，主表注解</span>
+                Finder column = new Finder<span class="params">(entityType, field)</span>;
+                <span class="keyword">if</span> <span class="params">(!columnMap.containsKey<span class="params">(column.getColumnName<span class="params">()</span>)</span>)</span> {
+                    columnMap.put<span class="params">(column.getColumnName<span class="params">()</span>, column)</span>;
+                }
+            }
+        }
+        <span class="keyword">if</span> <span class="params">(!Object.class.equals<span class="params">(entityType.getSuperclass<span class="params">()</span>)</span>)</span> {<span class="comment">//继续将父类属性字段缓存</span>
+            addColumns2Map<span class="params">(entityType.getSuperclass<span class="params">()</span>, primaryKeyFieldName, columnMap)</span>;
+        }
+    } catch <span class="params">(Throwable e)</span> {
+        LogUtils.e<span class="params">(e.getMessage<span class="params">()</span>, e)</span>;
+    }
+}
+</code></pre><h6 id="4-1-2-1-1-1-2-1-1_判断属性字段时候支持列对象转换">4.1.2.1.1.1.2.1.1 判断属性字段时候支持列对象转换</h6><pre><code><span class="comment">/**
+ * 检查是否支持Column对象转换
+ */</span>
+<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">boolean</span> isSupportColumnConverter(<span class="keyword">Class</span> columnType) {
+    <span class="keyword">if</span> (columnType_columnConverter_map.containsKey(columnType.getName())) {
+        <span class="keyword">return</span> <span class="keyword">true</span>;
+    } <span class="keyword">else</span> <span class="keyword">if</span> (ColumnConverter.<span class="keyword">class</span>.isAssignableFrom(columnType)) {<span class="comment">//isAssignableFrom如果调用这个方法的class或接口 与 参数cls表示的类或接口相同，或者是参数cls表示的类或接口的父类，则返回true。</span>
+        <span class="keyword">try</span> {
+            ColumnConverter columnConverter = (ColumnConverter) columnType.newInstance();
+            <span class="keyword">if</span> (columnConverter != <span class="keyword">null</span>) {
+                columnType_columnConverter_map.put(columnType.getName(), columnConverter);
+            }
+            <span class="keyword">return</span> columnConverter == <span class="keyword">null</span>;
+        } <span class="keyword">catch</span> (Throwable e) {
+        }
+    }
+    <span class="keyword">return</span> <span class="keyword">false</span>;
+}
+</code></pre><h6 id="4-1-2-1-1-1-2-1-1-1_标准列对象columnType_columnConverter_map内容，上述判断的依据：">4.1.2.1.1.1.2.1.1.1 标准列对象columnType_columnConverter_map内容，上述判断的依据：</h6><pre><code><span class="keyword">private</span> static final <span class="type">ConcurrentHashMap</span>&lt;<span class="type">String</span>, <span class="type">ColumnConverter</span>&gt; columnType_columnConverter_map;
+ static {
+    columnType_columnConverter_map = <span class="keyword">new</span> <span class="type">ConcurrentHashMap</span>&lt;<span class="type">String</span>, <span class="type">ColumnConverter</span>&gt;<span class="literal">()</span>;
+    <span class="type">BooleanColumnConverter</span> booleanColumnConverter = <span class="keyword">new</span> <span class="type">BooleanColumnConverter</span><span class="literal">()</span>;
+    columnType_columnConverter_map.put(boolean.<span class="keyword">class</span>.getName<span class="literal">()</span>, booleanColumnConverter);
+    columnType_columnConverter_map.put(<span class="type">Boolean</span>.<span class="keyword">class</span>.getName<span class="literal">()</span>, booleanColumnConverter);
+    <span class="type">ByteArrayColumnConverter</span> byteArrayColumnConverter = <span class="keyword">new</span> <span class="type">ByteArrayColumnConverter</span><span class="literal">()</span>;
+    columnType_columnConverter_map.put(byte<span class="literal">[]</span>.<span class="keyword">class</span>.getName<span class="literal">()</span>, byteArrayColumnConverter);
+    <span class="type">ByteColumnConverter</span> byteColumnConverter = <span class="keyword">new</span> <span class="type">ByteColumnConverter</span><span class="literal">()</span>;
+    columnType_columnConverter_map.put(byte.<span class="keyword">class</span>.getName<span class="literal">()</span>, byteColumnConverter);
+    columnType_columnConverter_map.put(<span class="type">Byte</span>.<span class="keyword">class</span>.getName<span class="literal">()</span>, byteColumnConverter);
+    <span class="type">CharColumnConverter</span> charColumnConverter = <span class="keyword">new</span> <span class="type">CharColumnConverter</span><span class="literal">()</span>;
+    columnType_columnConverter_map.put(<span class="built_in">char</span>.<span class="keyword">class</span>.getName<span class="literal">()</span>, charColumnConverter);
+    columnType_columnConverter_map.put(<span class="type">Character</span>.<span class="keyword">class</span>.getName<span class="literal">()</span>, charColumnConverter);
+    <span class="type">DateColumnConverter</span> dateColumnConverter = <span class="keyword">new</span> <span class="type">DateColumnConverter</span><span class="literal">()</span>;
+    columnType_columnConverter_map.put(<span class="type">Date</span>.<span class="keyword">class</span>.getName<span class="literal">()</span>, dateColumnConverter);
+    <span class="type">DoubleColumnConverter</span> doubleColumnConverter = <span class="keyword">new</span> <span class="type">DoubleColumnConverter</span><span class="literal">()</span>;
+    columnType_columnConverter_map.put(double.<span class="keyword">class</span>.getName<span class="literal">()</span>, doubleColumnConverter);
+    columnType_columnConverter_map.put(<span class="type">Double</span>.<span class="keyword">class</span>.getName<span class="literal">()</span>, doubleColumnConverter);
+    <span class="type">FloatColumnConverter</span> floatColumnConverter = <span class="keyword">new</span> <span class="type">FloatColumnConverter</span><span class="literal">()</span>;
+    columnType_columnConverter_map.put(<span class="built_in">float</span>.<span class="keyword">class</span>.getName<span class="literal">()</span>, floatColumnConverter);
+    columnType_columnConverter_map.put(<span class="type">Float</span>.<span class="keyword">class</span>.getName<span class="literal">()</span>, floatColumnConverter);
+    <span class="type">IntegerColumnConverter</span> integerColumnConverter = <span class="keyword">new</span> <span class="type">IntegerColumnConverter</span><span class="literal">()</span>;
+    columnType_columnConverter_map.put(<span class="built_in">int</span>.<span class="keyword">class</span>.getName<span class="literal">()</span>, integerColumnConverter);
+    columnType_columnConverter_map.put(<span class="type">Integer</span>.<span class="keyword">class</span>.getName<span class="literal">()</span>, integerColumnConverter);
+    <span class="type">LongColumnConverter</span> longColumnConverter = <span class="keyword">new</span> <span class="type">LongColumnConverter</span><span class="literal">()</span>;
+    columnType_columnConverter_map.put(long.<span class="keyword">class</span>.getName<span class="literal">()</span>, longColumnConverter);
+    columnType_columnConverter_map.put(<span class="type">Long</span>.<span class="keyword">class</span>.getName<span class="literal">()</span>, longColumnConverter);
+    <span class="type">ShortColumnConverter</span> shortColumnConverter = <span class="keyword">new</span> <span class="type">ShortColumnConverter</span><span class="literal">()</span>;
+    columnType_columnConverter_map.put(short.<span class="keyword">class</span>.getName<span class="literal">()</span>, shortColumnConverter);
+    columnType_columnConverter_map.put(<span class="type">Short</span>.<span class="keyword">class</span>.getName<span class="literal">()</span>, shortColumnConverter);
+    <span class="type">SqlDateColumnConverter</span> sqlDateColumnConverter = <span class="keyword">new</span> <span class="type">SqlDateColumnConverter</span><span class="literal">()</span>;
+    columnType_columnConverter_map.put(java.sql.<span class="type">Date</span>.<span class="keyword">class</span>.getName<span class="literal">()</span>, sqlDateColumnConverter);
+    <span class="type">StringColumnConverter</span> stringColumnConverter = <span class="keyword">new</span> <span class="type">StringColumnConverter</span><span class="literal">()</span>;
+    columnType_columnConverter_map.put(<span class="type">String</span>.<span class="keyword">class</span>.getName<span class="literal">()</span>, stringColumnConverter);
+}
+</code></pre><h6 id="4-1-2-1-1-1-3_获取表的ID属性TableUtils-getId(entityType);">4.1.2.1.1.1.3 获取表的ID属性TableUtils.getId(entityType);</h6><pre><code><span class="comment">/**
+ * 获得对象的ID属性
+ */</span>
+static synchronized com.lidroid.xutils.db.table.Id getId<span class="params">(Class&lt;?&gt; entityType)</span> {
+    <span class="keyword">if</span> <span class="params">(Object.class.equals<span class="params">(entityType)</span>)</span> {
+        throw new RuntimeException<span class="params">(<span class="string">"field 'id' not found"</span>)</span>;
+    }
+    <span class="keyword">if</span> <span class="params">(entityIdMap.containsKey<span class="params">(entityType.getName<span class="params">()</span>)</span>)</span> {
+        return entityIdMap.get<span class="params">(entityType.getName<span class="params">()</span>)</span>;
+    }
+    Field primaryKeyField = null;
+    Field[] fields = entityType.getDeclaredFields<span class="params">()</span>;<span class="comment">//获取声明字段</span>
+    <span class="keyword">if</span> <span class="params">(fields != null)</span> {
+        <span class="keyword">for</span> <span class="params">(Field field : fields)</span> {
+            <span class="keyword">if</span> <span class="params">(field.getAnnotation<span class="params">(Id.class)</span> != null)</span> {<span class="comment">//获取注解ID属性</span>
+                primaryKeyField = field;
+                break;
+            }
+        }
+        <span class="keyword">if</span> <span class="params">(primaryKeyField == null)</span> {<span class="comment">//没有发现注解ID，根据字段生成ID</span>
+            <span class="keyword">for</span> <span class="params">(Field field : fields)</span> {
+                <span class="keyword">if</span> <span class="params">(<span class="string">"id"</span>.equals<span class="params">(field.getName<span class="params">()</span>)</span> || <span class="string">"_id"</span>.equals<span class="params">(field.getName<span class="params">()</span>)</span>)</span> {
+                    primaryKeyField = field;
+                    break;
+                }
+            }
+        }
+    }
+    <span class="keyword">if</span> <span class="params">(primaryKeyField == null)</span> {
+        return getId<span class="params">(entityType.getSuperclass<span class="params">()</span>)</span>;<span class="comment">//没有iD属性再去他的父类去找</span>
+    }
+    com.lidroid.xutils.db.table.Id id = new com.lidroid.xutils.db.table.Id<span class="params">(entityType, primaryKeyField)</span>;<span class="comment">//生成数据ID对象</span>
+    entityIdMap.put<span class="params">(entityType.getName<span class="params">()</span>, id)</span>;<span class="comment">//存储这个ID对象</span>
+    return id;
+}
+</code></pre><h6 id="4-1-2-1-1-1-3-1_ID构造函数：com-lidroid-xutils-db-table-Id_id_=_new_com-lidroid-xutils-db-table-Id(entityType,_primaryKeyField);">4.1.2.1.1.1.3.1 ID构造函数：com.lidroid.xutils.db.table.Id id = new com.lidroid.xutils.db.table.Id(entityType, primaryKeyField);</h6><pre><code>Id<span class="params">(Class&lt;?&gt; entityType, Field field)</span> {
+    super<span class="params">(entityType, field)</span>;
+    columnFieldClassName = columnField.getType<span class="params">()</span>.getName<span class="params">()</span>;<span class="comment">//id属性类型名</span>
+}
+</code></pre><h6 id="4-1-2-1-1-1-3-1-1_父类构造函数super(entityType,_field);">4.1.2.1.1.1.3.1.1 父类构造函数super(entityType, field);</h6><pre><code>Column(<span class="keyword">Class</span>&lt;?&gt; entityType, Field field) {
+     <span class="keyword">this</span>.columnField = field;
+    <span class="keyword">this</span>.columnConverter = ColumnConverterFactory.getColumnConverter(field.getType());<span class="comment">//获取ID属性的ColumnConverter对象</span>
+    <span class="keyword">this</span>.columnName = ColumnUtils.getColumnNameByField(field);
+    <span class="keyword">if</span> (<span class="keyword">this</span>.columnConverter != <span class="keyword">null</span>) {
+        <span class="keyword">this</span>.defaultValue = <span class="keyword">this</span>.columnConverter.getFieldValue(ColumnUtils.getColumnDefaultValue(field));
+    } <span class="keyword">else</span> {
+        <span class="keyword">this</span>.defaultValue = <span class="keyword">null</span>;
+    }
+    <span class="keyword">this</span>.getMethod = ColumnUtils.getColumnGetMethod(entityType, field);
+    <span class="keyword">this</span>.setMethod = ColumnUtils.getColumnSetMethod(entityType, field);
+}
+</code></pre><p>至此Table对象构造完成。接下来如果数据库中的表不存在就去创建。</p>
+<h6 id="4-1-2-2_去构建创建表的SQL语句_SqlInfoBuilder-buildCreateTableSqlInfo(this,_entityType);">4.1.2.2 去构建创建表的SQL语句 SqlInfoBuilder.buildCreateTableSqlInfo(this, entityType);</h6><pre><code>public static SqlInfo buildCreateTableSqlInfo<span class="params">(DbUtils db, Class&lt;?&gt; entityType)</span> throws DbException {
+    Table table = Table.get<span class="params">(db, entityType)</span>;
+    Id id = table.id;
+    StringBuffer sqlBuffer = new StringBuffer<span class="params">()</span>;<span class="comment">//构造新建数据库SQL语句</span>
+    sqlBuffer.append<span class="params">(<span class="string">"CREATE TABLE IF NOT EXISTS "</span>)</span>;
+    sqlBuffer.append<span class="params">(table.tableName)</span>;
+    sqlBuffer.append<span class="params">(<span class="string">" ( "</span>)</span>;
+    <span class="keyword">if</span> <span class="params">(id.isAutoIncrement<span class="params">()</span>)</span> {<span class="comment">//id自增</span>
+        sqlBuffer.append<span class="params">(<span class="string">""</span><span class="string">").append(id.getColumnName()).append("</span><span class="string">"  "</span>)</span>.append<span class="params">(<span class="string">"INTEGER PRIMARY KEY AUTOINCREMENT,"</span>)</span>;
+    } <span class="keyword">else</span> {
+        sqlBuffer.append<span class="params">(<span class="string">""</span><span class="string">").append(id.getColumnName()).append("</span><span class="string">"  "</span>)</span>.append<span class="params">(id.getColumnDbType<span class="params">()</span>)</span>.append<span class="params">(<span class="string">" PRIMARY KEY,"</span>)</span>;
+    }
+    Collection&lt;Column&gt; columns = table.columnMap.values<span class="params">()</span>;<span class="comment">//获取表的列对象集合</span>
+    <span class="keyword">for</span> <span class="params">(Column column : columns)</span> {<span class="comment">//组合列名</span>
+        <span class="keyword">if</span> <span class="params">(column instanceof Finder)</span> {<span class="comment">//主表</span>
+            continue;
+        }
+        sqlBuffer.append<span class="params">(<span class="string">""</span><span class="string">").append(column.getColumnName()).append("</span><span class="string">"  "</span>)</span>;<span class="comment">//列名</span>
+        sqlBuffer.append<span class="params">(column.getColumnDbType<span class="params">()</span>)</span>;<span class="comment">//类型</span>
+        <span class="keyword">if</span> <span class="params">(ColumnUtils.isUnique<span class="params">(column.getColumnField<span class="params">()</span>)</span>)</span> {<span class="comment">//属性</span>
+            sqlBuffer.append<span class="params">(<span class="string">" UNIQUE"</span>)</span>;
+        }
+        <span class="keyword">if</span> <span class="params">(ColumnUtils.isNotNull<span class="params">(column.getColumnField<span class="params">()</span>)</span>)</span> {
+            sqlBuffer.append<span class="params">(<span class="string">" NOT NULL"</span>)</span>;
+        }
+        String check = ColumnUtils.getCheck<span class="params">(column.getColumnField<span class="params">()</span>)</span>;
+        <span class="keyword">if</span> <span class="params">(check != null)</span> {
+            sqlBuffer.append<span class="params">(<span class="string">" CHECK("</span>)</span>.append<span class="params">(check)</span>.append<span class="params">(<span class="string">")"</span>)</span>;
+        }
+        sqlBuffer.append<span class="params">(<span class="string">","</span>)</span>;
+    }
+    sqlBuffer.deleteCharAt<span class="params">(sqlBuffer.length<span class="params">()</span> - <span class="number">1</span>)</span>;<span class="comment">//删除</span>
+    sqlBuffer.append<span class="params">(<span class="string">" )"</span>)</span>;
+    return new SqlInfo<span class="params">(sqlBuffer.toString<span class="params">()</span>)</span>;
+}
+</code></pre><h6 id="4-1-2-3执行构建数据表的语句_execNonQuery(sqlInfo);">4.1.2.3执行构建数据表的语句 execNonQuery(sqlInfo);</h6><pre><code>public void execNonQuery<span class="params">(SqlInfo sqlInfo)</span> throws DbException {
+    debugSql<span class="params">(sqlInfo.getSql<span class="params">()</span>)</span>;
+    try {
+        <span class="keyword">if</span> <span class="params">(sqlInfo.getBindArgs<span class="params">()</span> != null)</span> {
+            database.execSQL<span class="params">(sqlInfo.getSql<span class="params">()</span>, sqlInfo.getBindArgsAsArray<span class="params">()</span>)</span>;<span class="comment">//有占位符的执行</span>
+        } <span class="keyword">else</span> {
+            database.execSQL<span class="params">(sqlInfo.getSql<span class="params">()</span>)</span>;
+        }
+    } catch <span class="params">(Throwable e)</span> {
+        throw new DbException<span class="params">(e)</span>;
+    }
+}
+</code></pre><h6 id="4-1-2-4_表构建完成时如果有注解去设置表的默认值String_execAfterTableCreated_=_TableUtils-getExecAfterTableCreated(entityType);">4.1.2.4 表构建完成时如果有注解去设置表的默认值String execAfterTableCreated = TableUtils.getExecAfterTableCreated(entityType);</h6><pre><code><span class="comment">/**
+ * 获取表注解默认值
+ */</span>
+<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">String</span> getExecAfterTableCreated(Class&lt;?&gt; entityType) {
+    <span class="keyword">Table</span> table = entityType.getAnnotation(<span class="keyword">Table</span>.class);
+    <span class="keyword">if</span> (table != <span class="keyword">null</span>) {
+        <span class="keyword">return</span> table.execAfterTableCreated();
+    }
+    <span class="keyword">return</span> <span class="keyword">null</span>;
+}
+</code></pre><h6 id="4-1-2-5_如果这个默认值语句不为空去执行，设置默认值execNonQuery(execAfterTableCreated);即调用4-1-2-3函数。">4.1.2.5 如果这个默认值语句不为空去执行，设置默认值execNonQuery(execAfterTableCreated);即调用4.1.2.3函数。</h6><p>至此，对于数据表如果不存在就去创建操作完成。</p>
+<h5 id="4-1-3_去构造插入的SQL语句SqlInfoBuilder-buildInsertSqlInfo(this,_entity)；">4.1.3 去构造插入的SQL语句SqlInfoBuilder.buildInsertSqlInfo(this, entity)；</h5><pre><code>public <span class="keyword">static</span> <span class="type">SqlInfo</span> buildInsertSqlInfo(<span class="type">DbUtils</span> db, <span class="type">Object</span> entity) throws <span class="type">DbException</span> {
+    <span class="type">List</span>&lt;<span class="type">KeyValue</span>&gt; keyValueList = entity2KeyValueList(db, entity);
+    <span class="keyword">if</span> (keyValueList.size() == <span class="number">0</span>) <span class="keyword">return</span> null;
+    <span class="type">SqlInfo</span> <span class="literal">result</span> = new <span class="type">SqlInfo</span>();
+    <span class="type">StringBuffer</span> sqlBuffer = new <span class="type">StringBuffer</span>();
+    sqlBuffer.append(<span class="string">"INSERT INTO "</span>);
+    sqlBuffer.append(<span class="type">TableUtils</span>.getTableName(entity.getClass()));//表名
+    sqlBuffer.append(<span class="string">" ("</span>);
+    <span class="keyword">for</span> (<span class="type">KeyValue</span> kv : keyValueList) {//封装插入的实体键值对
+        sqlBuffer.append(kv.key).append(<span class="string">","</span>);
+        <span class="literal">result</span>.addBindArgWithoutConverter(kv.value);//添加到属性链表中
+    }
+    sqlBuffer.deleteCharAt(sqlBuffer.length() - <span class="number">1</span>);
+    sqlBuffer.append(<span class="string">") VALUES ("</span>);
+    <span class="type">int</span> length = keyValueList.size();
+    <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; length; i++) {
+        sqlBuffer.append(<span class="string">"?,"</span>);
+    }
+    sqlBuffer.deleteCharAt(sqlBuffer.length() - <span class="number">1</span>);
+    sqlBuffer.append(<span class="string">")"</span>);
+    <span class="literal">result</span>.setSql(sqlBuffer.toString());
+    <span class="keyword">return</span> <span class="literal">result</span>;
+}
+</code></pre><h5 id="4-1-4_执行SQL语句执行插入数据操作_execNonQuery(SqlInfoBuilder-buildInsertSqlInfo(this,_entity));即调用4-1-2-3函数。">4.1.4 执行SQL语句执行插入数据操作 execNonQuery(SqlInfoBuilder.buildInsertSqlInfo(this, entity));即调用4.1.2.3函数。</h5><h5 id="4-1-5_设置数据库事务提交成功setTransactionSuccessful();">4.1.5 设置数据库事务提交成功setTransactionSuccessful();</h5><pre><code><span class="keyword">private</span> <span class="function"><span class="keyword">void</span> <span class="title">setTransactionSuccessful</span><span class="params">()</span> </span>{
+    <span class="keyword">if</span> (allowTransaction) {
+        database.setTransactionSuccessful();
+    }
+}
+</code></pre><p>至此，数据库插入一条记录完成。</p>
+<h3 id="5-客户端存储List数据">5.客户端存储List数据</h3><pre><code><span class="keyword">try</span> {
+        mUserFriendDbUtils.saveAll(friends);
+    } <span class="keyword">catch</span> (DbException <span class="literal">e</span>) {
+        <span class="literal">e</span>.printStackTrace();
+    }
+</code></pre><h4 id="5-1_存储List数据saveAll">5.1 存储List数据saveAll</h4><pre><code>public void saveAll<span class="params">(List&lt;?&gt; entities)</span> throws DbException {
+    <span class="keyword">if</span> <span class="params">(entities == null || entities.size<span class="params">()</span> == <span class="number">0</span>)</span> return;
+    try {
+        beginTransaction<span class="params">()</span>;<span class="comment">//开启事务</span>
+        createTableIfNotExist<span class="params">(entities.get<span class="params">(<span class="number">0</span>)</span>.getClass<span class="params">()</span>)</span>;
+        <span class="keyword">for</span> <span class="params">(Object entity : entities)</span> {
+            execNonQuery<span class="params">(SqlInfoBuilder.buildInsertSqlInfo<span class="params">(this, entity)</span>)</span>;
+        }
+        setTransactionSuccessful<span class="params">()</span>;
+    } finally {
+        endTransaction<span class="params">()</span>;
+    }
+}
+</code></pre><h5 id="5-1-1_构造插入语句调用4-1-2-3函数SqlInfoBuilder-buildInsertSqlInfo(this,_entity)">5.1.1 构造插入语句调用4.1.2.3函数SqlInfoBuilder.buildInsertSqlInfo(this, entity)</h5><p>后续与上述单项插入相同。</p>
+<h2 id="三_删除操作">三 删除操作</h2><p>删除数据操作。deleteAll；</p>
+<h3 id="6_客户端删除操作">6 客户端删除操作</h3><pre><code><span class="keyword">try</span> {
+        mUserCircleDbUtils.deleteAll(Circle.class);
+    } <span class="keyword">catch</span> (DbException <span class="literal">e</span>) {
+        <span class="literal">e</span>.printStackTrace();
+    }
+</code></pre><h4 id="6-1_执行删除mUserCircleDbUtils-deleteAll(Circle-class);">6.1 执行删除mUserCircleDbUtils.deleteAll(Circle.class);</h4><pre><code> <span class="keyword">public</span> <span class="keyword">void</span> deleteAll(<span class="keyword">Class</span>&lt;?&gt; entityType) <span class="keyword">throws</span> DbException {
+    <span class="keyword">delete</span>(entityType, <span class="keyword">null</span>);
+}
+</code></pre><h5 id="6-1-1_调用delete(entityType,_null);先判断表是否存在，在开启事务管理，执行SQL语句，提交事务成功，关闭事务。">6.1.1 调用delete(entityType, null);先判断表是否存在，在开启事务管理，执行SQL语句，提交事务成功，关闭事务。</h5><pre><code> <span class="keyword">public</span> <span class="keyword">void</span> <span class="keyword">delete</span>(<span class="keyword">Class</span>&lt;?&gt; entityType, WhereBuilder whereBuilder) <span class="keyword">throws</span> DbException {
+    <span class="keyword">if</span> (!tableIsExist(entityType)) <span class="keyword">return</span>;
+    <span class="keyword">try</span> {
+        beginTransaction();
+        execNonQuery(SqlInfoBuilder.buildDeleteSqlInfo(<span class="keyword">this</span>, entityType, whereBuilder));
+        setTransactionSuccessful();
+    } <span class="keyword">finally</span> {
+        endTransaction();
+    }
+}
+</code></pre><h6 id="6-1-1-1_构造删除的SQL语句SqlInfoBuilder-buildDeleteSqlInfo(this,_entityType,_whereBuilder)；">6.1.1.1 构造删除的SQL语句SqlInfoBuilder.buildDeleteSqlInfo(this, entityType, whereBuilder)；</h6><pre><code>public static SqlInfo buildDeleteSqlInfo(DbUtils <span class="keyword">db</span>, <span class="keyword">Class</span>&lt;?&gt; entityType, WhereBuilder whereBuilder) throws DbException {
+    <span class="keyword">Table</span> <span class="keyword">table</span> = <span class="keyword">Table</span>.<span class="literal">get</span>(<span class="keyword">db</span>, entityType);<span class="comment">//获取表对象</span>
+    StringBuilder sb = new StringBuilder(buildDeleteSqlByTableName(<span class="keyword">table</span>.tableName));
+    <span class="keyword">if</span> (whereBuilder != null &amp;&amp; whereBuilder.getWhereItemSize() &gt; 0) {
+        sb.<span class="keyword">append</span>(<span class="string">" WHERE "</span>).<span class="keyword">append</span>(whereBuilder.<span class="keyword">toString</span>());
+    }
+    <span class="keyword">return</span> new SqlInfo(sb.<span class="keyword">toString</span>());
+}
+</code></pre><h6 id="6-1-1-1-1根据表名构造删除SQL语句buildDeleteSqlByTableName(table-tableName)">6.1.1.1.1根据表名构造删除SQL语句buildDeleteSqlByTableName(table.tableName)</h6><pre><code><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">String</span> buildDeleteSqlByTableName(<span class="keyword">String</span> tableName) {
+    <span class="keyword">return</span> <span class="string">"DELETE FROM "</span> + tableName;
+}
+</code></pre><p>接下来执行与前面相同。<br>至此deleteAll操作完成。</p>
+<h2 id="四_查找操作">四 查找操作</h2><p>查找findAll操作：</p>
+<h3 id="7_客户端findAll操作：">7 客户端findAll操作：</h3><pre><code><span class="keyword">try</span> {
+        userList = mUserInforDbUtils.<span class="keyword">findAll</span>(User.<span class="keyword">class</span>);
+    } <span class="keyword">catch</span> (DbException e) {
+        e.printStackTrace();
+    }
+</code></pre><h4 id="7-1查找操作；">7.1查找操作；</h4><p>   public <t> List<t> findAll(Class<t> entityType) throws DbException {<br>        return findAll(Selector.from(entityType));<br>    }</t></t></t></p>
+<h5 id="7-1-1_调用findAll操作；">7.1.1 调用findAll操作；</h5><pre><code>public &lt;T&gt; <span class="type">List</span>&lt;T&gt; findAll(<span class="type">Selector</span> selector) throws <span class="type">DbException</span> {
+    <span class="keyword">if</span> (!tableIsExist(selector.getEntityType())) <span class="keyword">return</span> null;
+    <span class="type">String</span> sql = selector.toString();//构造选择语句
+    long <span class="type">seq</span> = <span class="type">CursorUtils</span>.<span class="type">FindCacheSequence</span>.getSeq();
+    findTempCache.setSeq(<span class="type">seq</span>);//
+    <span class="type">Object</span> obj = findTempCache.get(sql);
+    <span class="keyword">if</span> (obj != null) {//存在缓存
+        <span class="keyword">return</span> (<span class="type">List</span>&lt;T&gt;) obj;
+    }
+    <span class="type">List</span>&lt;T&gt; <span class="literal">result</span> = new <span class="type">ArrayList</span>&lt;T&gt;();
+    <span class="type">Cursor</span> cursor = execQuery(sql);//不存在缓存去执行查询吧
+    <span class="keyword">if</span> (cursor != null) {
+        <span class="keyword">try</span> {
+            <span class="keyword">while</span> (cursor.moveToNext()) {//存储
+                T entity = (T) <span class="type">CursorUtils</span>.getEntity(this, cursor, selector.getEntityType(), <span class="type">seq</span>);//////////
+                <span class="literal">result</span>.add(entity);
+            }
+            findTempCache.put(sql, <span class="literal">result</span>);
+        } catch (<span class="type">Throwable</span> e) {
+            throw new <span class="type">DbException</span>(e);
+        } <span class="keyword">finally</span> {
+            <span class="type">IOUtils</span>.closeQuietly(cursor);
+        }
+    }
+    <span class="keyword">return</span> <span class="literal">result</span>;
+}
+</code></pre><h6 id="7-1-1-1生产Selector语句selector-toString();">7.1.1.1生产Selector语句selector.toString();</h6><pre><code>@<span class="type">Override</span>
+public <span class="type">String</span> toString() {
+    <span class="type">StringBuilder</span> <span class="literal">result</span> = new <span class="type">StringBuilder</span>();
+    <span class="literal">result</span>.append(<span class="string">"SELECT "</span>);
+    <span class="literal">result</span>.append(<span class="string">"*"</span>);
+    <span class="literal">result</span>.append(<span class="string">" FROM "</span>).append(tableName);
+    <span class="keyword">if</span> (whereBuilder != null &amp;&amp; whereBuilder.getWhereItemSize() &gt; <span class="number">0</span>) {
+        <span class="literal">result</span>.append(<span class="string">" WHERE "</span>).append(whereBuilder.toString());
+    }
+    <span class="keyword">if</span> (orderByList != null) {
+        <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; orderByList.size(); i++) {
+            <span class="literal">result</span>.append(<span class="string">" ORDER BY "</span>).append(orderByList.get(i).toString());
+        }
+    }
+    <span class="keyword">if</span> (limit &gt; <span class="number">0</span>) {
+        <span class="literal">result</span>.append(<span class="string">" LIMIT "</span>).append(limit);
+        <span class="literal">result</span>.append(<span class="string">" OFFSET "</span>).append(offset);
+    }
+    <span class="keyword">return</span> <span class="literal">result</span>.toString();
+}
+</code></pre><h6 id="7-1-1-1-1执行查找语句获得查找的数据CursorUtils-getEntity(this,_cursor,_selector-getEntityType(),_seq);">7.1.1.1.1执行查找语句获得查找的数据CursorUtils.getEntity(this, cursor, selector.getEntityType(), seq);</h6><pre><code><span class="keyword">public</span> <span class="keyword">static</span> &lt;T&gt; T getEntity(<span class="keyword">final</span> DbUtils db, <span class="keyword">final</span> Cursor <span class="built_in">cursor</span>, Class&lt;T&gt; entityType, <span class="keyword">long</span> findCacheSequence) {
+    <span class="keyword">if</span> (db == <span class="keyword">null</span> || <span class="built_in">cursor</span> == <span class="keyword">null</span>) <span class="keyword">return</span> <span class="keyword">null</span>;
+    EntityTempCache.setSeq(findCacheSequence);
+    <span class="keyword">try</span> {
+        <span class="keyword">Table</span> table = <span class="keyword">Table</span>.<span class="built_in">get</span>(db, entityType);
+        Id id = table.id;
+        <span class="keyword">String</span> idColumnName = id.getColumnName();
+        <span class="built_in">int</span> idIndex = id.getIndex();
+        <span class="keyword">if</span> (idIndex &lt; <span class="number">0</span>) {
+            idIndex = <span class="built_in">cursor</span>.getColumnIndex(idColumnName);
+        }
+        <span class="keyword">Object</span> idValue = id.getColumnConverter().getFieldValue(<span class="built_in">cursor</span>, idIndex);
+        T entity = EntityTempCache.<span class="built_in">get</span>(entityType, idValue);
+        <span class="keyword">if</span> (entity == <span class="keyword">null</span>) {
+            entity = entityType.newInstance();
+            id.setValue2Entity(entity, <span class="built_in">cursor</span>, idIndex);
+            EntityTempCache.put(entityType, idValue, entity);
+        } <span class="keyword">else</span> {
+            <span class="keyword">return</span> entity;
+        }
+        <span class="built_in">int</span> columnCount = <span class="built_in">cursor</span>.getColumnCount();
+        <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; columnCount; i++) {
+            <span class="keyword">String</span> columnName = <span class="built_in">cursor</span>.getColumnName(i);
+            Column column = table.columnMap.<span class="built_in">get</span>(columnName);
+            <span class="keyword">if</span> (column != <span class="keyword">null</span>) {
+                column.setValue2Entity(entity, <span class="built_in">cursor</span>, i);
+            }
+        }
+        <span class="comment">// init finder</span>
+        <span class="keyword">for</span> (Finder finder : table.finderMap.values()) {
+            finder.setValue2Entity(entity, <span class="keyword">null</span>, <span class="number">0</span>);
+        }
+        <span class="keyword">return</span> entity;
+    } <span class="keyword">catch</span> (Throwable e) {
+        LogUtils.e(e.getMessage(), e);
+    }
+    <span class="keyword">return</span> <span class="keyword">null</span>;
+}
+</code></pre><p>执行完查询之后缓存并返回结果。</p>
+<h2 id="五_更新操作">五 更新操作</h2><h3 id="8_客户端调用更新">8 客户端调用更新</h3><p>   try {<br>            mArticleDbUtils.update(acceptArticle, “zanCount”);<br>        } catch (DbException e) {<br>            e.printStackTrace();<br>        }</p>
+<h4 id="8-1_函数update">8.1 函数update</h4><pre><code>public void update<span class="params">(Object entity, String... updateColumnNames)</span> throws DbException {
+    <span class="keyword">if</span> <span class="params">(!tableIsExist<span class="params">(entity.getClass<span class="params">()</span>)</span>)</span> return;
+    try {
+        beginTransaction<span class="params">()</span>;
+        execNonQuery<span class="params">(SqlInfoBuilder.buildUpdateSqlInfo<span class="params">(this, entity, updateColumnNames)</span>)</span>;
+        setTransactionSuccessful<span class="params">()</span>;
+    } finally {
+        endTransaction<span class="params">()</span>;
+    }
+}
+</code></pre><h5 id="8-1-1构造更新SQL语句SqlInfoBuilder-buildUpdateSqlInfo(this,_entity,_updateColumnNames)">8.1.1构造更新SQL语句SqlInfoBuilder.buildUpdateSqlInfo(this, entity, updateColumnNames)</h5><pre><code>public <span class="keyword">static</span> <span class="type">SqlInfo</span> buildUpdateSqlInfo(<span class="type">DbUtils</span> db, <span class="type">Object</span> entity, <span class="type">String</span>... updateColumnNames) throws <span class="type">DbException</span> {
+    <span class="type">List</span>&lt;<span class="type">KeyValue</span>&gt; keyValueList = entity2KeyValueList(db, entity);
+    <span class="keyword">if</span> (keyValueList.size() == <span class="number">0</span>) <span class="keyword">return</span> null;
+    <span class="type">HashSet</span>&lt;<span class="type">String</span>&gt; updateColumnNameSet = null;
+    <span class="keyword">if</span> (updateColumnNames != null &amp;&amp; updateColumnNames.length &gt; <span class="number">0</span>) {
+        updateColumnNameSet = new <span class="type">HashSet</span>&lt;<span class="type">String</span>&gt;(updateColumnNames.length);
+        <span class="type">Collections</span>.addAll(updateColumnNameSet, updateColumnNames);
+    }
+    <span class="type">Class</span>&lt;?&gt; entityType = entity.getClass();
+    <span class="type">Table</span> table = <span class="type">Table</span>.get(db, entityType);
+    <span class="type">Id</span> id = table.id;
+    <span class="type">Object</span> idValue = id.getColumnValue(entity);
+    <span class="keyword">if</span> (null == idValue) {
+        throw new <span class="type">DbException</span>(<span class="string">"this entity["</span> + entity.getClass() + <span class="string">"]'s id value is null"</span>);
+    }
+    <span class="type">SqlInfo</span> <span class="literal">result</span> = new <span class="type">SqlInfo</span>();
+    <span class="type">StringBuffer</span> sqlBuffer = new <span class="type">StringBuffer</span>(<span class="string">"UPDATE "</span>);
+    sqlBuffer.append(table.tableName);
+    sqlBuffer.append(<span class="string">" SET "</span>);
+    <span class="keyword">for</span> (<span class="type">KeyValue</span> kv : keyValueList) {
+        <span class="keyword">if</span> (updateColumnNameSet == null || updateColumnNameSet.contains(kv.key)) {
+            sqlBuffer.append(kv.key).append(<span class="string">"=?,"</span>);
+            <span class="literal">result</span>.addBindArgWithoutConverter(kv.value);
+        }
+    }
+    sqlBuffer.deleteCharAt(sqlBuffer.length() - <span class="number">1</span>);
+    sqlBuffer.append(<span class="string">" WHERE "</span>).append(<span class="type">WhereBuilder</span>.b(id.getColumnName(), <span class="string">"="</span>, idValue));
+    <span class="literal">result</span>.setSql(sqlBuffer.toString());
+    <span class="keyword">return</span> <span class="literal">result</span>;
+}
+</code></pre><p>后续操作与前面相同，支持更新操作完成。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2015/05/20/XUtils数据库模块源码分析/" data-id="cibi04q5k00002xgqpqyo99sb" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/源码分析/">源码分析</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2015/05/31/XUtils网络请求模块源码分析/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          XUtils网络请求模块源码分析
+        
+      </div>
+    </a>
+  
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/源码分析/">源码分析</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/源码分析/" style="font-size: 10px;">源码分析</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/06/11/XUtil图片模块源码分析/">XUtils图片模块源码分析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/05/31/XUtils网络请求模块源码分析/">XUtils网络请求模块源码分析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/05/20/XUtils数据库模块源码分析/">XUtils数据库模块源码分析</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 Leif<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+  </div>
+</body>
+</html>
